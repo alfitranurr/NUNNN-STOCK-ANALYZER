@@ -233,11 +233,8 @@ export default function Dashboard() {
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand-purple dark:text-violet-400 bg-brand-purple/10 px-2.5 py-1 rounded-md border border-brand-purple/20">
-                Fase Awal: Kalkulator Average Down
-              </span>
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mt-2 flex items-center gap-2">
-                Saham BEI Average Down
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+                Kalkulator Average Down
                 <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
               </h1>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
@@ -246,22 +243,17 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
-              <ThemeToggle />
+              <div className="md:hidden">
+                <ThemeToggle />
+              </div>
               
-              {!user ? (
+              {!user && (
                 <button
                   onClick={() => setIsAuthModalOpen(true)}
                   className="px-4.5 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
                 >
                   Masuk Akun
                 </button>
-              ) : (
-                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/5 text-xs">
-                  <Database className="h-4 w-4 text-brand-purple" />
-                  <span className="font-semibold text-slate-600 dark:text-slate-300 max-w-[120px] truncate">
-                    {user.email}
-                  </span>
-                </div>
               )}
             </div>
           </div>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ThemeToggle } from './theme-toggle';
 
 interface SidebarProps {
   currentTab: string;
@@ -123,8 +124,14 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 ))}
               </nav>
 
-              {/* Mobile Profile Footer */}
-              <div className="pt-4 border-t border-white/10 mt-auto">
+              {/* Mobile Bottom Section */}
+              <div className="mt-auto pt-4 border-t border-white/10 space-y-4">
+                {/* Theming Toggle */}
+                <div className="px-2">
+                  <ThemeToggle variant="full" />
+                </div>
+
+                {/* Profile Footer */}
                 {user ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 overflow-hidden">
@@ -220,8 +227,18 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
           ))}
         </nav>
 
-        {/* Profile Footer */}
-        <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 mt-auto">
+        {/* Bottom Section */}
+        <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-white/5 space-y-4">
+          {/* Theming Toggle */}
+          <div className={cn(isCollapsed ? "flex justify-center" : "px-3")}>
+            {isCollapsed ? (
+              <ThemeToggle variant="compact" />
+            ) : (
+              <ThemeToggle variant="full" />
+            )}
+          </div>
+
+          {/* Profile Footer */}
           {user ? (
             <div className={cn("flex items-center justify-between gap-3 overflow-hidden", isCollapsed ? "justify-center" : "px-3")}>
               <div className="flex items-center gap-3 overflow-hidden">

@@ -251,9 +251,6 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             <Sparkles className="h-4.5 w-4.5 text-brand-purple" />
             Parameter Rencana Average Down
           </h2>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Gunakan layout satu baris ini untuk memasukkan data posisi awal dan rencana pembelian baru secara horizontal.
-          </p>
         </div>
       </div>
 
