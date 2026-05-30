@@ -231,31 +231,14 @@ export default function Dashboard() {
         <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8">
           
           {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-                Kalkulator Average Down
-                <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
-                Alat bantu hitung rencana average down (pembelian bertahap) untuk meminimalkan kerugian floating loss secara presisi, terintegrasi dengan pajak transaksi bursa Indonesia.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
-              <div className="md:hidden">
-                <ThemeToggle />
-              </div>
-              
-              {!user && (
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="px-4.5 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-bold text-xs shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
-                >
-                  Masuk Akun
-                </button>
-              )}
-            </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+              Kalkulator Average Down
+              <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+              Alat bantu hitung rencana average down (pembelian bertahap) untuk meminimalkan kerugian floating loss secara presisi, terintegrasi dengan pajak transaksi bursa Indonesia.
+            </p>
           </div>
 
           {/* Alert Status Konfigurasi Supabase */}
