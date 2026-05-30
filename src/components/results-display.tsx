@@ -63,29 +63,40 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
 
   return (
     <div className="space-y-6 w-full animate-fadeIn">
-      {/* Ticker & Nama Perusahaan Header Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="glass-card p-5 border-brand-purple/20 bg-slate-900/45 dark:bg-black/35 flex justify-between items-center relative overflow-hidden"
-      >
-        <div className="absolute top-0 left-0 w-32 h-32 bg-brand-purple/5 rounded-full blur-3xl pointer-events-none" />
-        <div>
-          <span className="text-[10px] font-black text-brand-purple uppercase tracking-widest">Saham BEI Aktif</span>
-          <h2 className="text-4xl font-extrabold text-white tracking-widest mt-1">
+      {/* Ticker & Nama Perusahaan - Terpisah menjadi 2 Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5.5 w-full">
+        {/* Card 1: Saham BEI Aktif */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="glass-card p-5 border-brand-purple/20 bg-slate-900/45 dark:bg-black/35 relative overflow-hidden flex flex-col justify-center min-h-[92px]"
+        >
+          <div className="absolute top-0 left-0 w-32 h-32 bg-brand-purple/5 rounded-full blur-3xl pointer-events-none" />
+          <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
+            Ticker
+          </span>
+          <h2 className="text-3xl font-extrabold text-white tracking-widest mt-1">
             {ticker}
           </h2>
-        </div>
-        {companyName && (
-          <div className="text-right">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nama Emiten</span>
-            <h3 className="text-base font-extrabold text-brand-indigo dark:text-violet-300 mt-1 max-w-[250px] md:max-w-[400px] truncate">
-              {companyName}
-            </h3>
-          </div>
-        )}
-      </motion.div>
+        </motion.div>
+
+        {/* Card 2: Nama Emiten */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
+          className="glass-card p-5 border-slate-200 dark:border-white/5 bg-slate-900/45 dark:bg-black/35 relative overflow-hidden flex flex-col justify-center min-h-[92px]"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl pointer-events-none" />
+          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+            Nama Emiten
+          </span>
+          <h3 className="text-lg font-bold text-brand-indigo dark:text-violet-300 mt-1 truncate" title={companyName}>
+            {companyName || '-'}
+          </h3>
+        </motion.div>
+      </div>
 
       {/* Rencana Pembelian Baru & Total Lot Banner */}
       <motion.div 
