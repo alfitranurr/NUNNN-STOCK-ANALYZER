@@ -1,3 +1,9 @@
+export interface PurchaseTranche {
+  id: string;
+  lot: number;
+  price: number;
+}
+
 export interface AvgDownInput {
   ticker: string;
   companyName?: string;
@@ -10,6 +16,7 @@ export interface AvgDownInput {
   feeJual: number; // Persentase fee jual, e.g. 0.25 (%)
   includeFees: boolean;
   avgPriceAwalIncludesFee?: boolean;
+  tranches?: PurchaseTranche[];
 }
 
 export interface AvgDownResult {
@@ -54,14 +61,11 @@ export function calculateAvgDown(input: AvgDownInput): AvgDownResult {
     feeBeli,
     feeJual,
     includeFees,
-    avgPriceAwalIncludesFee = true
+    avgPriceAwalIncludesFee = true,
+    tranches = []
   } = input;
 
   const sharesAwal = lotAwal * 100;
-  const sharesBaru = lotBaru * 100;
-  const sharesTotal = sharesAwal + sharesBaru;
-  const lotTotal = lotAwal + lotBaru;
-
   const feeBeliPct = feeBeli / 100;
   const feeJualPct = feeJual / 100;
 
@@ -86,12 +90,30 @@ export function calculateAvgDown(input: AvgDownInput): AvgDownResult {
     : 0;
 
   // 2. Pembelian Baru
-  let capitalRequired = sharesBaru * hargaBeliBaru;
-  if (includeFees) {
-    capitalRequired = capitalRequired * (1 + feeBeliPct);
+  let sharesBaru = 0;
+  let capitalRequired = 0;
+
+  if (tranches && tranches.length > 0) {
+    tranches.forEach(tranche => {
+      const trancheShares = tranche.lot * 100;
+      sharesBaru += trancheShares;
+      let trancheCost = trancheShares * tranche.price;
+      if (includeFees) {
+        trancheCost = trancheCost * (1 + feeBeliPct);
+      }
+      capitalRequired += trancheCost;
+    });
+  } else {
+    sharesBaru = lotBaru * 100;
+    capitalRequired = sharesBaru * hargaBeliBaru;
+    if (includeFees) {
+      capitalRequired = capitalRequired * (1 + feeBeliPct);
+    }
   }
 
   // 3. Setelah Average Down
+  const sharesTotal = sharesAwal + sharesBaru;
+  const lotTotal = sharesTotal / 100;
   const investedAmountTotal = investedAmountAwal + capitalRequired;
   const avgPriceBaru = sharesTotal > 0 ? investedAmountTotal / sharesTotal : 0;
   const marketValueTotal = sharesTotal * currentPrice;

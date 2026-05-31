@@ -17,6 +17,7 @@ export interface SavedPlan {
   fee_jual: number;
   created_at: string;
   avgPriceAwalIncludesFee?: boolean;
+  tranches?: Array<{ id: string; lot: number; price: number }>;
 }
 
 interface HistoryTableProps {

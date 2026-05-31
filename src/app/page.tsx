@@ -122,14 +122,28 @@ export default function Dashboard() {
     if (!calculatorInput || !calculatorResult) return;
     setIsSaving(true);
 
+    let lotBaruSave = calculatorInput.lotBaru;
+    let hargaBeliBaruSave = calculatorInput.hargaBeliBaru;
+
+    if (calculatorInput.tranches && calculatorInput.tranches.length > 0) {
+      let totalShares = 0;
+      let totalCost = 0;
+      calculatorInput.tranches.forEach(t => {
+        totalShares += t.lot * 100;
+        totalCost += t.lot * 100 * t.price;
+      });
+      lotBaruSave = totalShares / 100;
+      hargaBeliBaruSave = totalShares > 0 ? totalCost / totalShares : 0;
+    }
+
     const newPlanData = {
       ticker: calculatorInput.ticker,
       company_name: calculatorInput.companyName || 'Emiten BEI',
       lot_awal: calculatorInput.lotAwal,
       avg_price_awal: calculatorInput.avgPriceAwal,
       current_price: calculatorInput.currentPrice,
-      lot_baru: calculatorInput.lotBaru,
-      harga_beli_baru: calculatorInput.hargaBeliBaru,
+      lot_baru: lotBaruSave,
+      harga_beli_baru: hargaBeliBaruSave,
       fee_beli: calculatorInput.feeBeli,
       fee_jual: calculatorInput.feeJual,
     };

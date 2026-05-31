@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Sparkles, Info } from 'lucide-react';
-import { AvgDownInput } from '@/lib/calculator';
+import { Sparkles, Info, Plus, Trash2 } from 'lucide-react';
+import { AvgDownInput, PurchaseTranche } from '@/lib/calculator';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CalculatorFormProps {
   onCalculate: (values: AvgDownInput) => void;
@@ -20,6 +21,7 @@ interface CalculatorFormProps {
     fee_beli: number;
     fee_jual: number;
     avgPriceAwalIncludesFee?: boolean;
+    tranches?: Array<{ id: string; lot: number; price: number }>;
   } | null;
 }
 
@@ -156,8 +158,9 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   const [avgPriceAwal, setAvgPriceAwal] = React.useState<string>('3,200');
   const [currentPrice, setCurrentPrice] = React.useState<string>('2,900');
   
-  const [lotBaru, setLotBaru] = React.useState<string>('15');
-  const [hargaBeliBaru, setHargaBeliBaru] = React.useState<string>('2,800');
+  const [tranches, setTranches] = React.useState<Array<{ id: string; lot: string; price: string }>>([
+    { id: '1', lot: '15', price: '2,800' }
+  ]);
   
   const [brokerPreset, setBrokerPreset] = React.useState('stockbit');
   const [feeBeli, setFeeBeli] = React.useState(0.15);
@@ -177,8 +180,21 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
       setLotAwal(formatNumberForInput(initialValues.lot_awal));
       setAvgPriceAwal(formatNumberForInput(initialValues.avg_price_awal));
       setCurrentPrice(formatNumberForInput(initialValues.current_price));
-      setLotBaru(formatNumberForInput(initialValues.lot_baru));
-      setHargaBeliBaru(formatNumberForInput(initialValues.harga_beli_baru));
+      if (initialValues.tranches && initialValues.tranches.length > 0) {
+        setTranches(initialValues.tranches.map(t => ({
+          id: t.id || crypto.randomUUID(),
+          lot: formatNumberForInput(t.lot),
+          price: formatNumberForInput(t.price)
+        })));
+      } else {
+        setTranches([
+          { 
+            id: '1', 
+            lot: formatNumberForInput(initialValues.lot_baru), 
+            price: formatNumberForInput(initialValues.harga_beli_baru) 
+          }
+        ]);
+      }
       setFeeBeli(initialValues.fee_beli);
       setFeeJual(initialValues.fee_jual);
       setIncludeFees(initialValues.fee_beli > 0 || initialValues.fee_jual > 0);
@@ -231,25 +247,72 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
 
   // Trigger calculation on input changes
   React.useEffect(() => {
+    const parsedTranches = tranches.map(t => ({
+      id: t.id,
+      lot: parseFormattedNumber(t.lot),
+      price: parseFormattedNumber(t.price)
+    }));
+
+    // Calculate total lots and weighted average price of new buys to support legacy bindings
+    let totalLots = 0;
+    let totalCost = 0;
+    parsedTranches.forEach(t => {
+      totalLots += t.lot;
+      totalCost += t.lot * t.price;
+    });
+    const weightedPrice = totalLots > 0 ? totalCost / totalLots : 0;
+
     const calculationInput: AvgDownInput = {
       ticker: ticker || 'IDX',
       companyName: companyName,
       lotAwal: parseFormattedNumber(lotAwal),
       avgPriceAwal: parseFormattedNumber(avgPriceAwal),
       currentPrice: parseFormattedNumber(currentPrice),
-      lotBaru: parseFormattedNumber(lotBaru),
-      hargaBeliBaru: parseFormattedNumber(hargaBeliBaru),
+      lotBaru: totalLots,
+      hargaBeliBaru: weightedPrice,
       feeBeli: includeFees ? Number(feeBeli) : 0,
       feeJual: includeFees ? Number(feeJual) : 0,
       includeFees,
-      avgPriceAwalIncludesFee
+      avgPriceAwalIncludesFee,
+      tranches: parsedTranches
     };
     onCalculate(calculationInput);
   }, [
     ticker, companyName, lotAwal, avgPriceAwal, currentPrice, 
-    lotBaru, hargaBeliBaru, feeBeli, feeJual, includeFees, avgPriceAwalIncludesFee,
+    tranches, feeBeli, feeJual, includeFees, avgPriceAwalIncludesFee,
     onCalculate
   ]);
+
+  const handleAddTranche = () => {
+    setTranches([
+      ...tranches,
+      { id: crypto.randomUUID(), lot: '', price: '' }
+    ]);
+  };
+
+  const handleRemoveTranche = (id: string) => {
+    if (tranches.length <= 1) return;
+    setTranches(tranches.filter(t => t.id !== id));
+  };
+
+  const handleTrancheChange = (id: string, field: 'lot' | 'price', value: string) => {
+    setTranches(tranches.map(t => {
+      if (t.id === id) {
+        const cleanVal = field === 'lot' ? value.replace(/[^0-9]/g, '') : value.replace(/[^0-9.,]/g, '');
+        return { ...t, [field]: cleanVal };
+      }
+      return t;
+    }));
+  };
+
+  const handleTrancheBlur = (id: string, field: 'lot' | 'price') => {
+    setTranches(tranches.map(t => {
+      if (t.id === id) {
+        return { ...t, [field]: formatNumberForInput(t[field]) };
+      }
+      return t;
+    }));
+  };
 
 
   const handlePresetChange = (presetId: string) => {
@@ -394,34 +457,71 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         </div>
 
         {/* Rencana Pembelian Baru */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-[190px]">
+        <div className="flex flex-col gap-1.5 flex-1 min-w-[280px]">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">3. Rencana Beli Baru</label>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <input
-                type="text"
-                value={lotBaru}
-                onChange={(e) => setLotBaru(e.target.value.replace(/[^0-9.,]/g, ''))}
-                onBlur={() => handleBlur(lotBaru, setLotBaru)}
-                placeholder="Lot Baru"
-                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold border-brand-purple/20 focus:border-brand-purple"
-                required
-              />
-              <span className="text-[9px] text-slate-500 text-center block mt-1">Lot Baru</span>
-            </div>
-            <div>
-              <input
-                type="text"
-                value={hargaBeliBaru}
-                onChange={(e) => setHargaBeliBaru(e.target.value.replace(/[^0-9.,]/g, ''))}
-                onBlur={() => handleBlur(hargaBeliBaru, setHargaBeliBaru)}
-                placeholder="Harga Baru"
-                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold border-brand-purple/20 focus:border-brand-purple"
-                required
-              />
-              <span className="text-[9px] text-slate-500 text-center block mt-1">Harga Beli (Rp)</span>
-            </div>
+          
+          <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto pr-1">
+            <AnimatePresence initial={false}>
+              {tranches.map((tranche, index) => (
+                <motion.div
+                  key={tranche.id}
+                  initial={{ opacity: 0, height: 0, y: -10 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-2 overflow-hidden py-0.5"
+                >
+                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 w-11 shrink-0">
+                    Tahap {index + 1}
+                  </span>
+
+                  <div className="flex-1 min-w-[60px]">
+                    <input
+                      type="text"
+                      value={tranche.lot}
+                      onChange={(e) => handleTrancheChange(tranche.id, 'lot', e.target.value)}
+                      onBlur={() => handleTrancheBlur(tranche.id, 'lot')}
+                      placeholder="Lot"
+                      className="w-full glass-input px-1 py-2 text-base md:text-xs text-center font-bold border-brand-purple/10 focus:border-brand-purple bg-black/20"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex-2 min-w-[90px]">
+                    <input
+                      type="text"
+                      value={tranche.price}
+                      onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
+                      onBlur={() => handleTrancheBlur(tranche.id, 'price')}
+                      placeholder="Harga Beli"
+                      className="w-full glass-input px-1.5 py-2 text-base md:text-xs text-center font-bold border-brand-purple/10 focus:border-brand-purple bg-black/20"
+                      required
+                    />
+                  </div>
+
+                  {tranches.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTranche(tranche.id)}
+                      className="p-1.5 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                      title="Hapus Tahap Ini"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
+
+          <button
+            type="button"
+            onClick={handleAddTranche}
+            className="mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-dashed border-brand-purple/30 hover:border-brand-purple bg-brand-purple/5 hover:bg-brand-purple/10 text-brand-purple dark:text-violet-300 font-bold text-[9px] transition-all cursor-pointer select-none"
+          >
+            <Plus className="h-3 w-3" />
+            Tambah Tahap Pembelian
+          </button>
         </div>
 
         {/* Broker Fee Settings */}
@@ -486,8 +586,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             isSaving ||
             parseFormattedNumber(lotAwal) <= 0 ||
             parseFormattedNumber(avgPriceAwal) <= 0 ||
-            parseFormattedNumber(lotBaru) <= 0 ||
-            parseFormattedNumber(hargaBeliBaru) <= 0
+            tranches.some(t => parseFormattedNumber(t.lot) <= 0 || parseFormattedNumber(t.price) <= 0)
           }
           className="py-3 px-5.5 rounded-xl bg-gradient-to-r from-brand-indigo to-brand-purple hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs transition-all duration-300 shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0 self-stretch xl:self-auto h-10.5 xl:mb-4.5"
         >
