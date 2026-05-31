@@ -9,6 +9,7 @@ export interface AvgDownInput {
   feeBeli: number; // Persentase fee beli, e.g. 0.15 (%)
   feeJual: number; // Persentase fee jual, e.g. 0.25 (%)
   includeFees: boolean;
+  avgPriceAwalIncludesFee?: boolean;
 }
 
 export interface AvgDownResult {
@@ -52,7 +53,8 @@ export function calculateAvgDown(input: AvgDownInput): AvgDownResult {
     hargaBeliBaru,
     feeBeli,
     feeJual,
-    includeFees
+    includeFees,
+    avgPriceAwalIncludesFee = true
   } = input;
 
   const sharesAwal = lotAwal * 100;
@@ -64,9 +66,11 @@ export function calculateAvgDown(input: AvgDownInput): AvgDownResult {
   const feeJualPct = feeJual / 100;
 
   // 1. Sebelum Average Down
-  // Asumsi: avgPriceAwal di portfolio biasanya sudah include fee beli,
-  // namun jika includeFees = false, kita abaikan saja fee.
-  const investedAmountAwal = sharesAwal * avgPriceAwal;
+  const realAvgPriceAwal = (includeFees && !avgPriceAwalIncludesFee) 
+    ? avgPriceAwal * (1 + feeBeliPct) 
+    : avgPriceAwal;
+
+  const investedAmountAwal = sharesAwal * realAvgPriceAwal;
   const marketValueAwal = sharesAwal * currentPrice;
   
   let floatingPLAwal = 0;
@@ -127,7 +131,7 @@ export function calculateAvgDown(input: AvgDownInput): AvgDownResult {
   }
 
   return {
-    avgPriceAwal,
+    avgPriceAwal: realAvgPriceAwal,
     sharesAwal,
     investedAmountAwal,
     marketValueAwal,

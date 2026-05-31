@@ -158,6 +158,7 @@ export default function Dashboard() {
         const newLocalPlan: SavedPlan = {
           id: crypto.randomUUID(),
           ...newPlanData,
+          avgPriceAwalIncludesFee: calculatorInput.avgPriceAwalIncludesFee,
           created_at: new Date().toISOString()
         };
 

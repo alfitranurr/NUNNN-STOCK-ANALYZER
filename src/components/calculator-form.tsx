@@ -19,6 +19,7 @@ interface CalculatorFormProps {
     harga_beli_baru: number;
     fee_beli: number;
     fee_jual: number;
+    avgPriceAwalIncludesFee?: boolean;
   } | null;
 }
 
@@ -162,6 +163,10 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   const [feeBeli, setFeeBeli] = React.useState(0.15);
   const [feeJual, setFeeJual] = React.useState(0.25);
   const [includeFees, setIncludeFees] = React.useState(true);
+  
+  // Custom configurations and loading states
+  const [avgPriceAwalIncludesFee, setAvgPriceAwalIncludesFee] = React.useState(true);
+  const [isFetchingTicker, setIsFetchingTicker] = React.useState(false);
 
 
   // Sync state if initialValues changes
@@ -177,6 +182,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
       setFeeBeli(initialValues.fee_beli);
       setFeeJual(initialValues.fee_jual);
       setIncludeFees(initialValues.fee_beli > 0 || initialValues.fee_jual > 0);
+      setAvgPriceAwalIncludesFee(initialValues.avgPriceAwalIncludesFee !== false);
       
       const matchedPreset = BROKER_PRESETS.find(p => p.buy === initialValues.fee_beli && p.sell === initialValues.fee_jual);
       if (matchedPreset) {
@@ -198,6 +204,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
       }
       
       const fetchRemoteTicker = async () => {
+        setIsFetchingTicker(true);
         try {
           const res = await fetch(`/api/ticker?symbol=${val}`);
           if (res.ok) {
@@ -211,6 +218,8 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
           }
         } catch (err) {
           console.error('Error fetching remote ticker data:', err);
+        } finally {
+          setIsFetchingTicker(false);
         }
       };
       fetchRemoteTicker();
@@ -232,12 +241,13 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
       hargaBeliBaru: parseFormattedNumber(hargaBeliBaru),
       feeBeli: includeFees ? Number(feeBeli) : 0,
       feeJual: includeFees ? Number(feeJual) : 0,
-      includeFees
+      includeFees,
+      avgPriceAwalIncludesFee
     };
     onCalculate(calculationInput);
   }, [
     ticker, companyName, lotAwal, avgPriceAwal, currentPrice, 
-    lotBaru, hargaBeliBaru, feeBeli, feeJual, includeFees,
+    lotBaru, hargaBeliBaru, feeBeli, feeJual, includeFees, avgPriceAwalIncludesFee,
     onCalculate
   ]);
 
@@ -311,7 +321,9 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Nama Perusahaan"
-                className="w-full glass-input px-3.5 py-2.5 text-base md:text-xs font-semibold placeholder:text-slate-500/50"
+                className={`w-full glass-input px-3.5 py-2.5 text-base md:text-xs font-semibold placeholder:text-slate-500/50 transition-all duration-300 ${
+                  isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40 shadow-[0_0_8px_rgba(139,92,246,0.15)]' : ''
+                }`}
               />
             </div>
           </div>
@@ -349,14 +361,36 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
               <input
                 type="text"
                 value={currentPrice}
+                onChange={(e) => setCurrentPrice(e.target.value.replace(/[^0-9.,]/g, ''))}
+                onBlur={() => handleBlur(currentPrice, setCurrentPrice)}
                 placeholder="Harga Sekarang"
-                className="w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold bg-slate-100/10 dark:bg-black/15 cursor-not-allowed opacity-75"
-                readOnly
+                className={`w-full glass-input px-1 py-2.5 text-base md:text-xs text-center font-bold transition-all duration-300 ${
+                  isFetchingTicker ? 'animate-pulse text-slate-400 bg-slate-100/5 dark:bg-white/5 border-brand-purple/40' : ''
+                }`}
                 required
               />
               <span className="text-[9px] text-slate-500 text-center block mt-1">Current Price (Rp)</span>
             </div>
           </div>
+          
+          {/* Checkbox Penyesuaian Fee Beli Awal */}
+          {includeFees && (
+            <div className="flex items-center gap-1.5 mt-1.5 animate-fadeIn select-none">
+              <input
+                type="checkbox"
+                id="avgPriceAwalIncludesFee"
+                checked={avgPriceAwalIncludesFee}
+                onChange={(e) => setAvgPriceAwalIncludesFee(e.target.checked)}
+                className="rounded border-white/10 text-brand-purple focus:ring-brand-purple bg-black/40 h-3.5 w-3.5 cursor-pointer"
+              />
+              <label 
+                htmlFor="avgPriceAwalIncludesFee" 
+                className="text-[9px] text-slate-400 hover:text-slate-300 cursor-pointer transition-colors font-semibold leading-none"
+              >
+                Avg. Price awal sudah termasuk fee beli
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Rencana Pembelian Baru */}
@@ -401,9 +435,45 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
             <option value="stockbit">Stockbit (Buy 0.15% / Sell 0.25%)</option>
             <option value="ajaib">Ajaib (Buy 0.15% / Sell 0.25%)</option>
             <option value="ipot">IPOT (Buy 0.19% / Sell 0.29%)</option>
-            <option value="custom">Custom (Beli 0.20% / Jual 0.30%)</option>
+            <option value="custom">Custom Fee</option>
             <option value="none">Tanpa Fee (0.00%)</option>
           </select>
+          
+          {brokerPreset === 'custom' && (
+            <div className="grid grid-cols-2 gap-2 mt-1.5 animate-fadeIn">
+              <div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="10"
+                    value={feeBeli}
+                    onChange={(e) => setFeeBeli(parseFloat(e.target.value) || 0)}
+                    className="w-full glass-input pl-2 pr-5 py-1.5 text-xs text-center font-bold"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
+                </div>
+                <span className="text-[8px] text-slate-500 text-center block mt-0.5">Fee Beli</span>
+              </div>
+              <div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="10"
+                    value={feeJual}
+                    onChange={(e) => setFeeJual(parseFloat(e.target.value) || 0)}
+                    className="w-full glass-input pl-2 pr-5 py-1.5 text-xs text-center font-bold"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
+                </div>
+                <span className="text-[8px] text-slate-500 text-center block mt-0.5">Fee Jual</span>
+              </div>
+            </div>
+          )}
+          
           <span className="text-[9px] text-slate-500 text-center block mt-1">
             {includeFees ? 'Potongan fee dihitung' : 'Murni tanpa biaya broker'}
           </span>

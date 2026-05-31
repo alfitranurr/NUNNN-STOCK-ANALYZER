@@ -16,6 +16,7 @@ export interface SavedPlan {
   fee_beli: number;
   fee_jual: number;
   created_at: string;
+  avgPriceAwalIncludesFee?: boolean;
 }
 
 interface HistoryTableProps {
