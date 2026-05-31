@@ -6,6 +6,7 @@ import { CalculatorForm } from '@/components/calculator-form';
 import { ResultsDisplay } from '@/components/results-display';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
+import { PortfolioTab } from '@/components/portfolio-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -37,6 +38,18 @@ export default function Dashboard() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
+
+  // Persistent active tab on page refresh
+  React.useEffect(() => {
+    const savedTab = localStorage.getItem('nunnn_stock_active_tab');
+    if (savedTab) {
+      setCurrentTab(savedTab);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    localStorage.setItem('nunnn_stock_active_tab', currentTab);
+  }, [currentTab]);
 
   // Check user session on mount
   React.useEffect(() => {
@@ -220,6 +233,24 @@ export default function Dashboard() {
     showToast(`Parameter saham ${plan.ticker} berhasil dimuat ke kalkulator.`);
   };
 
+  const handleAvgDownFromPortfolio = (ticker: string, lot: number, avgPrice: number) => {
+    const mockPlan: SavedPlan = {
+      id: 'mock-portfolio-transfer',
+      ticker: ticker,
+      lot_awal: lot,
+      avg_price_awal: avgPrice,
+      current_price: avgPrice,
+      lot_baru: 0,
+      harga_beli_baru: 0,
+      fee_beli: 0.15,
+      fee_jual: 0.25,
+      created_at: new Date().toISOString()
+    };
+    setActivePlanToLoad(mockPlan);
+    setCurrentTab('avg-down');
+    showToast(`Parameter saham ${ticker} berhasil dimuat ke kalkulator.`);
+  };
+
   const handleAuthSuccess = (authUser: any) => {
     setUser(authUser);
     if (authUser.isMock) {
@@ -264,65 +295,75 @@ export default function Dashboard() {
       {/* Main Dashboard Panel */}
       <main className={`flex-1 min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
         <motion.div
+          key={currentTab}
           initial={{ opacity: 0, y: 40, filter: 'blur(12px)' }}
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
           className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8"
         >
-          
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-              Kalkulator Average Down
-              <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 w-full">
-              Alat bantu hitung rencana average down (pembelian bertahap) untuk meminimalkan kerugian floating loss secara presisi, terintegrasi dengan pajak transaksi bursa Indonesia.
-            </p>
-          </div>
-
-          {/* Alert Status Konfigurasi Supabase */}
-          {!isSupabaseConfigured && (
-            <div className="p-4.5 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border border-brand-indigo/35 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm">
-              <Info className="h-5 w-5 text-brand-indigo shrink-0 mt-0.5" />
+          {currentTab === 'avg-down' ? (
+            <>
+              {/* Header */}
               <div>
-                <span className="font-bold text-slate-800 dark:text-white">Tips Uji Coba Mandiri:</span>
-                <p className="mt-1">
-                  Aplikasi ini mendeteksi Anda belum menghubungkan proyek Supabase (PostgreSQL) riil. 
-                  Jangan khawatir! Seluruh fitur **Average Down**, perhitungan presisi **Broker Fee**, 
-                  dan **Penyimpanan Riwayat** telah dilengkapi dengan simulasi lokal menggunakan *localStorage* browser. 
-                  Anda dapat mencoba alur kerja full-stack secara utuh langsung sekarang.
+                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+                  Kalkulator Average Down
+                  <Sparkles className="h-6 w-6 text-brand-purple animate-pulse shrink-0" />
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 w-full">
+                  Alat bantu hitung rencana average down (pembelian bertahap) untuk meminimalkan kerugian floating loss secara presisi, terintegrasi dengan pajak transaksi bursa Indonesia.
                 </p>
               </div>
-            </div>
+
+              {/* Alert Status Konfigurasi Supabase */}
+              {!isSupabaseConfigured && (
+                <div className="p-4.5 rounded-2xl bg-indigo-500/5 dark:bg-indigo-500/10 border border-brand-indigo/35 text-slate-600 dark:text-slate-300 text-xs flex gap-3 shadow-sm">
+                  <Info className="h-5 w-5 text-brand-indigo shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-slate-800 dark:text-white">Tips Uji Coba Mandiri:</span>
+                    <p className="mt-1">
+                      Aplikasi ini mendeteksi Anda belum menghubungkan proyek Supabase (PostgreSQL) riil. 
+                      Jangan khawatir! Seluruh fitur **Average Down**, perhitungan presisi **Broker Fee**, 
+                      dan **Penyimpanan Riwayat** telah dilengkapi dengan simulasi lokal menggunakan *localStorage* browser. 
+                      Anda dapat mencoba alur kerja full-stack secara utuh langsung sekarang.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Content Area Stack (Form on top, Results on bottom) */}
+              <div className="flex flex-col gap-6 w-full">
+                <CalculatorForm 
+                  onCalculate={handleCalculate}
+                  onSavePlan={handleSavePlan}
+                  isSaving={isSaving}
+                  user={user}
+                  initialValues={activePlanToLoad}
+                />
+
+                <ResultsDisplay 
+                  result={calculatorResult} 
+                  ticker={calculatorInput?.ticker || 'ANTM'} 
+                  companyName={calculatorInput?.companyName}
+                />
+              </div>
+
+              {/* History List */}
+              <div className="w-full">
+                <HistoryTable 
+                  plans={plans}
+                  onDeletePlan={handleDeletePlan}
+                  onLoadPlan={handleLoadPlan}
+                  user={user}
+                />
+              </div>
+            </>
+          ) : (
+            <PortfolioTab
+              user={user}
+              onSignInClick={() => setIsAuthModalOpen(true)}
+              onAvgDownClick={handleAvgDownFromPortfolio}
+            />
           )}
-
-          {/* Content Area Stack (Form on top, Results on bottom) */}
-          <div className="flex flex-col gap-6 w-full">
-            <CalculatorForm 
-              onCalculate={handleCalculate}
-              onSavePlan={handleSavePlan}
-              isSaving={isSaving}
-              user={user}
-              initialValues={activePlanToLoad}
-            />
-
-            <ResultsDisplay 
-              result={calculatorResult} 
-              ticker={calculatorInput?.ticker || 'ANTM'} 
-              companyName={calculatorInput?.companyName}
-            />
-          </div>
-
-          {/* History List */}
-          <div className="w-full">
-            <HistoryTable 
-              plans={plans}
-              onDeletePlan={handleDeletePlan}
-              onLoadPlan={handleLoadPlan}
-              user={user}
-            />
-          </div>
           
           {/* Footer branding */}
           <div className="text-center text-[10px] text-slate-500 pt-6 pb-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5">

@@ -104,8 +104,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
       {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal Card */}
-      <div className="relative glass-card border-brand-purple/20 p-6 md:p-8 w-full max-w-md bg-slate-900/90 dark:bg-black/90 shadow-2xl text-white animate-scaleIn">
+      <div className="relative border border-brand-purple/20 p-6 md:p-8 w-full max-w-md bg-slate-950 dark:bg-black shadow-2xl text-white animate-scaleIn rounded-2xl">
         {/* Close Button */}
         <button
           onClick={onClose}

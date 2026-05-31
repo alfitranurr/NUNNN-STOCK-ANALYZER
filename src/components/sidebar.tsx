@@ -32,7 +32,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
   const menuItems = [
     { id: 'avg-down', label: 'Kalkulator Avg Down', icon: Calculator, active: true },
-    { id: 'portfolio', label: 'Portofolio Sync', icon: Briefcase, active: false, labelBadge: 'Soon' },
+    { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true },
     { id: 'history', label: 'Riwayat Rencana', icon: History, active: false, labelBadge: 'Soon' },
     { id: 'watchlist', label: 'Watchlist Saham', icon: Star, active: false, labelBadge: 'Soon' },
     { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: false, labelBadge: 'Soon' },

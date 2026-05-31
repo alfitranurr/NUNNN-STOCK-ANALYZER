@@ -78,7 +78,7 @@ export function ConfirmModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
-          className="relative glass-card border-slate-200/10 p-6 w-full max-w-sm bg-slate-900/90 dark:bg-black/90 shadow-2xl text-white z-10"
+          className="relative border border-white/10 p-6 w-full max-w-sm bg-slate-950 dark:bg-black shadow-2xl text-white z-10 rounded-2xl"
         >
           <div className="flex flex-col items-center text-center">
             {/* Icon Wrapper */}
