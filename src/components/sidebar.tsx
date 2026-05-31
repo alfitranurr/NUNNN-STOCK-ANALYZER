@@ -23,10 +23,11 @@ interface SidebarProps {
   user: any;
   onSignOut: () => void;
   onSignInClick: () => void;
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
 }
 
-export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInClick }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInClick, isCollapsed, setIsCollapsed }: SidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
 
   const menuItems = [
@@ -263,18 +264,6 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         </div>
       </motion.aside>
 
-      {/* Adjust Main Layout Margin */}
-      <style jsx global>{`
-        main {
-          margin-left: 0;
-        }
-        @media (min-width: 768px) {
-          main {
-            margin-left: ${isCollapsed ? '80px' : '260px'};
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-        }
-      `}</style>
     </>
   );
 }

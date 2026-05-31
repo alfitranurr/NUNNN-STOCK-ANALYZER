@@ -27,6 +27,9 @@ export default function Dashboard() {
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = React.useState(false);
   const [planIdToDelete, setPlanIdToDelete] = React.useState<string | null>(null);
   
+  // Sidebar state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  
   // Custom toast notification state
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
@@ -239,11 +242,18 @@ export default function Dashboard() {
         user={user}
         onSignOut={handleSignOut}
         onSignInClick={() => setIsAuthModalOpen(true)}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
       />
 
       {/* Main Dashboard Panel */}
-      <main className="flex-1 min-w-0 transition-all duration-300 md:pl-0 pt-16 md:pt-0">
-        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8">
+      <main className={`flex-1 min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
+        <motion.div
+          initial={{ opacity: 0, y: 40, filter: 'blur(12px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+          className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8"
+        >
           
           {/* Header */}
           <div>
@@ -304,7 +314,7 @@ export default function Dashboard() {
             <span>© 2025 Al Fitra Nur Ramadhani. All rights reserved.</span>
           </div>
 
-        </div>
+        </motion.div>
       </main>
 
       {/* Authentication Modal */}
