@@ -92,7 +92,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
             Nama Emiten
           </span>
-          <h3 className="text-lg font-bold text-brand-indigo dark:text-violet-300 mt-1 truncate" title={companyName}>
+          <h3 className="text-sm sm:text-base md:text-lg font-bold text-brand-indigo dark:text-violet-300 mt-1 break-words leading-tight" title={companyName}>
             {companyName || '-'}
           </h3>
         </motion.div>

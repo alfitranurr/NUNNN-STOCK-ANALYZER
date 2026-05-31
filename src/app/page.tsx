@@ -6,9 +6,10 @@ import { CalculatorForm } from '@/components/calculator-form';
 import { ResultsDisplay } from '@/components/results-display';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
+import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import { Sparkles, BookOpen, AlertCircle, Info, Database, Heart } from 'lucide-react';
+import { Sparkles, BookOpen, AlertCircle, Info, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard() {
@@ -21,6 +22,10 @@ export default function Dashboard() {
   const [calculatorInput, setCalculatorInput] = React.useState<AvgDownInput | null>(null);
   const [calculatorResult, setCalculatorResult] = React.useState<AvgDownResult | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
+  
+  // States for Confirmation Modals
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = React.useState(false);
+  const [planIdToDelete, setPlanIdToDelete] = React.useState<string | null>(null);
   
   // Custom toast notification state
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -163,13 +168,18 @@ export default function Dashboard() {
     }
   };
 
-  const handleDeletePlan = async (id: string) => {
+  const handleDeletePlan = (id: string) => {
+    setPlanIdToDelete(id);
+  };
+
+  const executeDeletePlan = async () => {
+    if (!planIdToDelete) return;
     if (isSupabaseConfigured && user && !user.isMock) {
       try {
         const { error } = await supabase
           .from('avg_down_plans')
           .delete()
-          .eq('id', id);
+          .eq('id', planIdToDelete);
 
         if (error) throw error;
         showToast('Rencana berhasil dihapus.');
@@ -179,11 +189,12 @@ export default function Dashboard() {
       }
     } else {
       // Local Storage delete
-      const updated = plans.filter(p => p.id !== id);
+      const updated = plans.filter(p => p.id !== planIdToDelete);
       localStorage.setItem('nunnn_stock_saved_plans', JSON.stringify(updated));
       setPlans(updated);
       showToast('Rencana berhasil dihapus dari browser.');
     }
+    setPlanIdToDelete(null);
   };
 
   const handleLoadPlan = (plan: SavedPlan) => {
@@ -201,7 +212,11 @@ export default function Dashboard() {
     }
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
+    setIsLogoutConfirmOpen(true);
+  };
+
+  const executeSignOut = async () => {
     if (isSupabaseConfigured && user && !user.isMock) {
       await supabase.auth.signOut();
     } else {
@@ -209,6 +224,7 @@ export default function Dashboard() {
     }
     setUser(null);
     showToast('Anda telah keluar dari akun.');
+    setIsLogoutConfirmOpen(false);
   };
 
   return (
@@ -285,9 +301,7 @@ export default function Dashboard() {
           
           {/* Footer branding */}
           <div className="text-center text-[10px] text-slate-500 pt-6 pb-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5">
-            <span>Nunnn Stock App v1.0.0 © 2026. Made with</span>
-            <Heart className="h-3 w-3 text-rose-500 fill-rose-500" />
-            <span>for Indonesian Stock Market.</span>
+            <span>© 2025 Al Fitra Nur Ramadhani. All rights reserved.</span>
           </div>
 
         </div>
@@ -298,6 +312,29 @@ export default function Dashboard() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onAuthSuccess={handleAuthSuccess}
+      />
+
+      {/* Confirmation Modals */}
+      <ConfirmModal
+        isOpen={isLogoutConfirmOpen}
+        onClose={() => setIsLogoutConfirmOpen(false)}
+        onConfirm={executeSignOut}
+        title="Konfirmasi Keluar"
+        message="Apakah Anda yakin ingin keluar dari akun? Anda perlu masuk kembali untuk mengakses cloud database."
+        confirmText="Ya, Keluar"
+        cancelText="Batal"
+        type="warning"
+      />
+
+      <ConfirmModal
+        isOpen={planIdToDelete !== null}
+        onClose={() => setPlanIdToDelete(null)}
+        onConfirm={executeDeletePlan}
+        title="Hapus Rencana"
+        message="Apakah Anda yakin ingin menghapus rencana simulasi ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        type="danger"
       />
 
       {/* Floating Toast Notification */}
