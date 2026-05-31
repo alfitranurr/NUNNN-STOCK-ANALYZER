@@ -24,6 +24,14 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
     return value < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
   };
 
+  // Dynamic font size based on company name length
+  const getCompanyFontSize = (name?: string) => {
+    if (!name) return 'text-lg';
+    if (name.length > 25) return 'text-sm sm:text-base';
+    if (name.length > 18) return 'text-base sm:text-lg';
+    return 'text-lg';
+  };
+
   // Reset confetti status jika ticker atau input berubah secara mendasar
   React.useEffect(() => {
     if (result && !result.turnedIntoProfit) {
@@ -92,7 +100,7 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
             Nama Emiten
           </span>
-          <h3 className="text-sm sm:text-base md:text-lg font-bold text-brand-indigo dark:text-violet-300 mt-1 break-words leading-tight" title={companyName}>
+          <h3 className={`${getCompanyFontSize(companyName)} font-bold text-brand-indigo dark:text-violet-300 mt-1 break-words leading-tight`} title={companyName}>
             {companyName || '-'}
           </h3>
         </motion.div>
