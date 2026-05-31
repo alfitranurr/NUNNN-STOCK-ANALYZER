@@ -7,6 +7,7 @@ import { ResultsDisplay } from '@/components/results-display';
 import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio-tab';
+import { AnalysisTab } from '@/components/analysis-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -33,6 +34,7 @@ export default function Dashboard() {
   
   // Custom toast notification state
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [selectedAnalysisTicker, setSelectedAnalysisTicker] = React.useState<string | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -288,6 +290,11 @@ export default function Dashboard() {
     showToast(`Parameter saham ${ticker} berhasil dimuat ke kalkulator.`);
   };
 
+  const handleAnalyzeFromPortfolio = (ticker: string) => {
+    setSelectedAnalysisTicker(ticker);
+    setCurrentTab('analysis');
+  };
+
   const handleAuthSuccess = (authUser: any) => {
     setUser(authUser);
     if (authUser.isMock) {
@@ -413,11 +420,18 @@ export default function Dashboard() {
                 />
               </div>
             </>
-          ) : (
+          ) : currentTab === 'portfolio' ? (
             <PortfolioTab
               user={user}
               onSignInClick={() => setIsAuthModalOpen(true)}
               onAvgDownClick={handleAvgDownFromPortfolio}
+              onAnalyzeClick={handleAnalyzeFromPortfolio}
+            />
+          ) : (
+            <AnalysisTab
+              user={user}
+              onSignInClick={() => setIsAuthModalOpen(true)}
+              initialTicker={selectedAnalysisTicker}
             />
           )}
           

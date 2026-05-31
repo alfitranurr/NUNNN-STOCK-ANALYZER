@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Loader2,
   RefreshCw,
+  LineChart,
   X
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -35,9 +36,10 @@ interface PortfolioTabProps {
   user: any;
   onSignInClick: () => void;
   onAvgDownClick: (ticker: string, lot: number, avgPrice: number) => void;
+  onAnalyzeClick: (ticker: string) => void;
 }
 
-export function PortfolioTab({ user, onSignInClick, onAvgDownClick }: PortfolioTabProps) {
+export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeClick }: PortfolioTabProps) {
   const [holdings, setHoldings] = React.useState<Holding[]>([]);
   const [cashBalance, setCashBalance] = React.useState<number>(0);
   const [currentPrices, setCurrentPrices] = React.useState<Record<string, number>>({});
@@ -549,6 +551,15 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick }: PortfolioT
                           {/* Actions */}
                           <td className="px-4 py-4 whitespace-nowrap text-right text-xs">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* Analisis Action */}
+                              <button
+                                onClick={() => onAnalyzeClick(h.ticker)}
+                                className="p-2 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-500 dark:text-teal-400 border border-teal-500/20 transition-all cursor-pointer flex items-center justify-center"
+                                title="Analisis Saham Pro"
+                              >
+                                <LineChart className="h-4.5 w-4.5" />
+                              </button>
+
                               {/* Avg Down Action */}
                               <button
                                 onClick={() => onAvgDownClick(h.ticker, h.lot, h.avg_price)}

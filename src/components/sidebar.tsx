@@ -12,7 +12,8 @@ import {
   Menu, 
   X,
   LogOut,
-  User
+  User,
+  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,10 +33,10 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
 
   const menuItems = [
     { id: 'avg-down', label: 'Kalkulator Avg Down', icon: Calculator, active: true },
-    { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true },
+    { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true, isLocked: !user },
+    { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: true, isLocked: !user },
     { id: 'history', label: 'Riwayat Rencana', icon: History, active: false, labelBadge: 'Soon' },
     { id: 'watchlist', label: 'Watchlist Saham', icon: Star, active: false, labelBadge: 'Soon' },
-    { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: false, labelBadge: 'Soon' },
   ];
 
   const sidebarVariants = {
@@ -119,6 +120,9 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                         {item.labelBadge}
                       </span>
+                    )}
+                    {item.isLocked && (
+                      <Lock className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                     )}
                   </button>
                 ))}
@@ -217,6 +221,9 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                 <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-sm">
                   {item.labelBadge}
                 </span>
+              )}
+              {!isCollapsed && item.isLocked && (
+                <Lock className="h-3.5 w-3.5 text-slate-500 dark:text-slate-600 shrink-0" />
               )}
             </button>
           ))}
