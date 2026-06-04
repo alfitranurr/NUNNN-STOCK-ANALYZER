@@ -24,40 +24,111 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     setLoading(true);
     setErrorMsg(null);
 
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
+    const cleanEmail = email.toLowerCase().trim();
+
     // MOCK MODE FALLBACK
     if (!isSupabaseConfigured) {
       setTimeout(() => {
         setLoading(false);
-        const mockUser = {
-          id: '12345678-1234-1234-1234-1234567890ab',
-          email: email,
-          isMock: true
-        };
-        onAuthSuccess(mockUser);
-        onClose();
+        const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
+        let simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
+
+        const isCurrentAdmin = cleanEmail === adminEmail;
+
+        if (isSignUp) {
+          if (simUsers.some((u: any) => u.email.toLowerCase() === cleanEmail)) {
+            setErrorMsg('Alamat email sudah terdaftar.');
+            return;
+          }
+          const newUser = {
+            email: cleanEmail,
+            password: password,
+            approved: isCurrentAdmin
+          };
+          simUsers.push(newUser);
+          localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify(simUsers));
+
+          if (isCurrentAdmin) {
+            const mockUser = {
+              id: 'admin-mock-id',
+              email: cleanEmail,
+              isMock: true
+            };
+            onAuthSuccess(mockUser);
+            onClose();
+          } else {
+            alert('Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan dari Administrator sebelum Anda dapat login.');
+            setIsSignUp(false);
+          }
+        } else {
+          const userObj = simUsers.find((u: any) => u.email.toLowerCase() === cleanEmail && u.password === password);
+          if (!userObj) {
+            setErrorMsg('Email atau password salah.');
+            return;
+          }
+          if (!userObj.approved) {
+            setErrorMsg('Pendaftaran Anda sedang menunggu persetujuan dari Administrator. Silakan hubungi admin.');
+            return;
+          }
+          const mockUser = {
+            id: 'mock-user-' + Math.random().toString(36).substring(2, 9),
+            email: cleanEmail,
+            isMock: true
+          };
+          onAuthSuccess(mockUser);
+          onClose();
+        }
       }, 1000);
       return;
     }
 
     try {
+      const isCurrentAdmin = cleanEmail === adminEmail;
+
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: cleanEmail,
           password,
         });
         if (error) throw error;
         if (data.user) {
-          onAuthSuccess(data.user);
-          alert('Pendaftaran berhasil! Periksa email Anda untuk konfirmasi (jika email verification aktif di Supabase).');
-          onClose();
+          await supabase
+            .from('user_approvals')
+            .insert({ email: cleanEmail, approved: isCurrentAdmin });
+          
+          if (isCurrentAdmin) {
+            onAuthSuccess(data.user);
+            onClose();
+          } else {
+            await supabase.auth.signOut();
+            alert('Pendaftaran berhasil! Akun Anda berstatus PENDING dan harus disetujui Administrator sebelum Anda dapat login.');
+            setIsSignUp(false);
+          }
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: cleanEmail,
           password,
         });
         if (error) throw error;
         if (data.user) {
+          if (!isCurrentAdmin) {
+            const { data: approvalData, error: dbError } = await supabase
+              .from('user_approvals')
+              .select('approved')
+              .eq('email', cleanEmail)
+              .single();
+
+            if (dbError || !approvalData || !approvalData.approved) {
+              if (!approvalData) {
+                await supabase.from('user_approvals').insert({ email: cleanEmail, approved: false });
+              }
+              await supabase.auth.signOut();
+              setErrorMsg('Pendaftaran Anda sedang menunggu persetujuan dari Administrator. Silakan hubungi admin.');
+              return;
+            }
+          }
           onAuthSuccess(data.user);
           onClose();
         }

@@ -14,7 +14,8 @@ import {
   LogOut,
   User,
   Lock,
-  BookOpen
+  BookOpen,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,11 +33,15 @@ interface SidebarProps {
 export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInClick, isCollapsed, setIsCollapsed }: SidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
 
+  const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
+  const isAdmin = user && user.email && user.email.toLowerCase() === adminEmail;
+
   const menuItems = [
     { id: 'avg-down', label: 'Kalkulator Avg Down', icon: Calculator, active: true },
     { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true, isLocked: !user },
     { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: true, isLocked: !user },
     { id: 'news', label: 'Berita & Sentimen', icon: BookOpen, active: true },
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheck, active: true }] : []),
     { id: 'history', label: 'Riwayat Rencana', icon: History, active: false, labelBadge: 'Soon' },
     { id: 'watchlist', label: 'Watchlist Saham', icon: Star, active: false, labelBadge: 'Soon' },
   ];

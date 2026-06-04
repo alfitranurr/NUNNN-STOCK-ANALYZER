@@ -9,6 +9,7 @@ import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio-tab';
 import { AnalysisTab } from '@/components/analysis-tab';
 import { NewsTab } from '@/components/news-tab';
+import { AdminPanelTab } from '@/components/admin-panel-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -76,11 +77,36 @@ export default function Dashboard() {
 
     const checkSession = async () => {
       if (!isSupabaseConfigured) {
-        // Cek apakah ada mock user di localStorage
         const storedMockUser = localStorage.getItem('nunnn_stock_mock_user');
         if (storedMockUser) {
           try {
-            setUser(JSON.parse(storedMockUser));
+            const parsedMockUser = JSON.parse(storedMockUser);
+            const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
+            
+            if (parsedMockUser.email?.toLowerCase() === adminEmail) {
+              const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
+              let simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
+              const adminUserIndex = simUsers.findIndex((u: any) => u.email.toLowerCase() === adminEmail);
+              if (adminUserIndex === -1) {
+                simUsers.push({ email: adminEmail, password: 'adminpassword', approved: true });
+                localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify(simUsers));
+              } else if (!simUsers[adminUserIndex].approved) {
+                simUsers[adminUserIndex].approved = true;
+                localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify(simUsers));
+              }
+            } else {
+              const storedSimUsers = localStorage.getItem('nunnn_stock_simulated_users');
+              const simUsers = storedSimUsers ? JSON.parse(storedSimUsers) : [];
+              const simUser = simUsers.find((u: any) => u.email.toLowerCase() === parsedMockUser.email.toLowerCase());
+              
+              if (!simUser || !simUser.approved) {
+                localStorage.removeItem('nunnn_stock_mock_user');
+                setUser(null);
+                showToast('Akun simulasi Anda belum disetujui oleh Administrator.', 'error');
+                return;
+              }
+            }
+            setUser(parsedMockUser);
           } catch {
             localStorage.removeItem('nunnn_stock_mock_user');
           }
@@ -96,7 +122,39 @@ export default function Dashboard() {
             clearSupabaseAuthKeys();
           }
         } else if (data?.session) {
-          setUser(data.session.user);
+          const sessionUser = data.session.user;
+          const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
+          
+          if (sessionUser.email?.toLowerCase() === adminEmail) {
+            const { data: adminApproval } = await supabase
+              .from('user_approvals')
+              .select('approved')
+              .eq('email', sessionUser.email)
+              .single();
+              
+            if (!adminApproval) {
+              await supabase.from('user_approvals').insert({ email: sessionUser.email, approved: true });
+            } else if (!adminApproval.approved) {
+              await supabase.from('user_approvals').update({ approved: true }).eq('email', sessionUser.email);
+            }
+          } else {
+            const { data: approvalData, error: dbError } = await supabase
+              .from('user_approvals')
+              .select('approved')
+              .eq('email', sessionUser.email)
+              .single();
+
+            if (dbError || !approvalData || !approvalData.approved) {
+              if (!approvalData && sessionUser.email) {
+                await supabase.from('user_approvals').insert({ email: sessionUser.email, approved: false });
+              }
+              await supabase.auth.signOut();
+              setUser(null);
+              showToast('Akun Anda belum disetujui oleh Administrator.', 'error');
+              return;
+            }
+          }
+          setUser(sessionUser);
         } else {
           setUser(null);
         }
@@ -434,6 +492,8 @@ export default function Dashboard() {
               onSignInClick={() => setIsAuthModalOpen(true)}
               initialTicker={selectedAnalysisTicker}
             />
+          ) : currentTab === 'admin' ? (
+            <AdminPanelTab user={user} />
           ) : (
             <NewsTab
               user={user}
