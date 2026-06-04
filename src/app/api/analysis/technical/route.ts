@@ -465,14 +465,15 @@ export async function GET(request: NextRequest) {
       bandarStatus = 'DISTRIBUTION';
     }
 
-    // Estimate Foreign Net Buy in IDR (Approx. 15% of daily money flow)
-    const priceChange = lastClose - (cleanClose[lastDayIdx - 1] || lastClose);
-    const moneyDelta = priceChange * lastVolume;
-    let foreignNetBuy = Math.round(moneyDelta * 0.15);
+    // Estimate Foreign Net Buy in IDR based on total daily turnover and close price position within the high-low range
+    const totalTurnover = lastClose * lastVolume;
+    let foreignNetBuy = Math.round(totalTurnover * (closePos - 0.5) * 0.65);
+    
+    // Safety fallback when price is unchanged but bandar status shows movement
     if (foreignNetBuy === 0 && bandarStatus.includes('ACCUMULATION')) {
-      foreignNetBuy = Math.round(lastClose * lastVolume * 0.05);
+      foreignNetBuy = Math.round(totalTurnover * 0.08);
     } else if (foreignNetBuy === 0 && bandarStatus.includes('DISTRIBUTION')) {
-      foreignNetBuy = -Math.round(lastClose * lastVolume * 0.05);
+      foreignNetBuy = -Math.round(totalTurnover * 0.08);
     }
 
     // Multi-Timeframe Trend

@@ -8,6 +8,7 @@ import { HistoryTable, SavedPlan } from '@/components/history-table';
 import { AuthModal } from '@/components/auth-modal';
 import { PortfolioTab } from '@/components/portfolio-tab';
 import { AnalysisTab } from '@/components/analysis-tab';
+import { NewsTab } from '@/components/news-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -427,11 +428,16 @@ export default function Dashboard() {
               onAvgDownClick={handleAvgDownFromPortfolio}
               onAnalyzeClick={handleAnalyzeFromPortfolio}
             />
-          ) : (
+          ) : currentTab === 'analysis' ? (
             <AnalysisTab
               user={user}
               onSignInClick={() => setIsAuthModalOpen(true)}
               initialTicker={selectedAnalysisTicker}
+            />
+          ) : (
+            <NewsTab
+              user={user}
+              onSignInClick={() => setIsAuthModalOpen(true)}
             />
           )}
           

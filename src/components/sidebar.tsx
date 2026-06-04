@@ -13,7 +13,8 @@ import {
   X,
   LogOut,
   User,
-  Lock
+  Lock,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,6 +36,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
     { id: 'avg-down', label: 'Kalkulator Avg Down', icon: Calculator, active: true },
     { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true, isLocked: !user },
     { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: true, isLocked: !user },
+    { id: 'news', label: 'Berita & Sentimen', icon: BookOpen, active: true },
     { id: 'history', label: 'Riwayat Rencana', icon: History, active: false, labelBadge: 'Soon' },
     { id: 'watchlist', label: 'Watchlist Saham', icon: Star, active: false, labelBadge: 'Soon' },
   ];
