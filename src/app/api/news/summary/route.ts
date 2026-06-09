@@ -28,24 +28,37 @@ function generateMockSummary(title: string, source: string) {
     'lesu', 'gugatan', 'krisis', 'pangkas', 'ambruk', 'jatuh', 'koreksi', 'memerah'
   ].some(w => titleLower.includes(w));
 
-  const sourceName = source || 'Sumber Berita';
+  // Tentukan subjek berita secara cerdas agar tidak menyematkan nama publisher/sumber berita
+  let subject = 'Emiten terkait';
+  if (titleLower.includes('ihsg')) {
+    subject = 'IHSG';
+  } else if (titleLower.includes('rupiah')) {
+    subject = 'Nilai Tukar Rupiah';
+  } else {
+    // Ambil kata pertama atau cari potongan judul sebelum pemisah
+    const cleanTitle = title.replace(/persero/gi, '').trim();
+    const parts = cleanTitle.split(/[-:|]/);
+    if (parts[0] && parts[0].trim().length > 3) {
+      subject = parts[0].trim();
+    }
+  }
 
   if (isPositive) {
     return {
-      highlight: `Kinerja Operasional & Keuangan ${sourceName} Menunjukkan Tren Positif`,
-      context: `Berita utama bertajuk "${title}" dari ${sourceName} mencerminkan perkembangan bisnis positif yang berpotensi mendorong apresiasi nilai emiten atau prospek ekonomi terkait di masa depan.`,
+      highlight: `Katalis Positif Berpotensi Mendorong Penguatan ${subject}`,
+      context: `Berita utama bertajuk "${title}" dari ${source || 'sumber informasi'} mencerminkan perkembangan bisnis positif yang berpotensi memberikan dorongan bagi ${subject}.`,
       keyFindings: [
         "Aktivitas bisnis berjalan ekspansif dengan indikasi pertumbuhan volume penjualan atau peningkatan layanan.",
         "Efisiensi biaya operasional diproyeksikan mampu meningkatkan marjin keuntungan bersih (Net Profit Margin).",
         "Respon pelaku pasar di bursa cenderung menyambut baik sentimen ini, terlihat dari stabilitas volume transaksi.",
         "Peluang dividen atau aksi korporasi strategis lainnya dinilai tetap menarik bagi pemegang saham jangka panjang."
       ],
-      takeaway: "Sentimen positif ini memperkuat basis fundamental emiten. Investor dapat memanfaatkan momentum koreksi sehat untuk melakukan akumulasi bertahap."
+      takeaway: "Sentimen positif ini memperkuat basis fundamental. Investor dapat memanfaatkan momentum koreksi sehat untuk melakukan akumulasi bertahap."
     };
   } else if (isNegative) {
     return {
-      highlight: `Waspada Tekanan Sentimen Negatif Pada ${sourceName}`,
-      context: `Kabar terkini bertajuk "${title}" menyoroti tantangan atau risiko operasional tertentu yang dihadapi oleh emiten atau sektor perekonomian terkait, memicu kehati-hatian investor.`,
+      highlight: `Waspada Tekanan Sentimen Negatif Terhadap ${subject}`,
+      context: `Kabar terkini bertajuk "${title}" menyoroti tantangan atau sentimen negatif yang sedang memengaruhi ${subject}, memicu kehati-hatian pelaku pasar.`,
       keyFindings: [
         "Adanya tekanan pada margin laba yang disebabkan oleh kenaikan beban input atau biaya logistik.",
         "Struktur permodalan atau rasio liabilitas (utang) memerlukan pengawasan lebih lanjut guna mengukur solvabilitas.",
@@ -56,8 +69,8 @@ function generateMockSummary(title: string, source: string) {
     };
   } else {
     return {
-      highlight: `Konsolidasi Sentimen & Prospek Netral dari ${sourceName}`,
-      context: `Informasi "${title}" yang dilansir oleh ${sourceName} menunjukkan pergerakan yang cenderung stabil dan berimbang, tanpa katalis penggerak harga ekstrem untuk saat ini.`,
+      highlight: `Konsolidasi Sentimen & Prospek Netral Pada ${subject}`,
+      context: `Informasi "${title}" yang dilansir oleh ${source || 'media'} menunjukkan kondisi ${subject} cenderung stabil tanpa katalis penggerak harga ekstrem untuk saat ini.`,
       keyFindings: [
         "Emiten berada dalam fase konsolidasi bisnis sehat, menyeimbangkan ekspansi dengan pengelolaan risiko internal.",
         "Rasio valuasi harga saham (P/E dan PBV) saat ini diperdagangkan dalam area rata-rata historisnya.",
@@ -69,10 +82,84 @@ function generateMockSummary(title: string, source: string) {
   }
 }
 
+async function getOriginalArticleUrl(googleRssUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(googleRssUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    const html = await response.text();
+    const match = html.match(/data-p="([^"]+)"/);
+    if (!match) return null;
+    const dataP = match[1];
+    
+    // Decode HTML entities
+    const cleanDataP = dataP
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/%\.@\./g, '["garturlreq",');
+      
+    const obj = JSON.parse(cleanDataP);
+
+    const payload = {
+      'f.req': JSON.stringify([[
+        ['Fbv4je', JSON.stringify([...obj.slice(0, -6), ...obj.slice(-2)]), 'null', 'generic']
+      ]])
+    };
+
+    const postResponse = await fetch('https://news.google.com/_/DotsSplashUi/data/batchexecute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+      },
+      body: new URLSearchParams(payload).toString()
+    });
+    
+    const resText = await postResponse.text();
+    const cleanResText = resText.replace(/^\)\]\}\'\n/, '');
+    const responseData = JSON.parse(cleanResText);
+    const arrayString = responseData[0][2];
+    const finalUrl = JSON.parse(arrayString)[1];
+    return finalUrl;
+  } catch (err) {
+    console.error('Error decoding Google News URL:', err);
+    return null;
+  }
+}
+
+async function fetchArticleText(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      signal: AbortSignal.timeout(6000) // 6 seconds timeout
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    
+    // Clean HTML to text
+    let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+    text = text.replace(/<\/p>|<br\s*\/?>/gi, '\n');
+    text = text.replace(/<[^>]+>/g, ' ');
+    text = text.replace(/  +/g, ' ');
+    text = text.replace(/\n\s*\n+/g, '\n\n');
+    
+    return text.substring(0, 6000).trim();
+  } catch (err) {
+    console.error('Error fetching article text:', err);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, source } = body;
+    const { title, source, link } = body;
 
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -81,16 +168,42 @@ export async function POST(request: NextRequest) {
     const geminiKey = process.env.GEMINI_API_KEY;
     const openAIKey = process.env.OPENAI_API_KEY;
 
+    // Resolve original URL and fetch article text if link is provided
+    let articleContent = '';
+    let resolvedUrl = link || '';
+    if (link && link.startsWith('http')) {
+      try {
+        if (link.includes('news.google.com')) {
+          const decoded = await getOriginalArticleUrl(link);
+          if (decoded) {
+            resolvedUrl = decoded;
+          }
+        }
+        if (resolvedUrl) {
+          const content = await fetchArticleText(resolvedUrl);
+          if (content) {
+            articleContent = content;
+          }
+        }
+      } catch (fetchErr) {
+        console.error('Failed to retrieve full article content:', fetchErr);
+      }
+    }
+
     if (!geminiKey && !openAIKey) {
       const mockData = generateMockSummary(title, source);
       return NextResponse.json({ ...mockData, isMock: true });
     }
 
-    const prompt = `Anda adalah analis finansial profesional. Analisislah berita/artikel berikut ini:
+    let prompt = `Anda adalah analis finansial profesional. Analisislah berita/artikel berikut ini:
 Judul: "${title}"
-Sumber: "${source}"
+Sumber: "${source}"\n`;
 
-Berikan ringkasan analisis dalam Bahasa Indonesia. Output Anda HARUS berupa objek JSON dengan format persis seperti di bawah ini dan tidak ada penjelasan/teks lain di luar JSON tersebut:
+    if (articleContent) {
+      prompt += `\nKonten Lengkap Artikel:\n"""\n${articleContent}\n"""\n`;
+    }
+
+    prompt += `\nBerikan ringkasan analisis mendalam dalam Bahasa Indonesia berdasarkan data yang tersedia di atas. Output Anda HARUS berupa objek JSON dengan format persis seperti di bawah ini dan tidak ada penjelasan/teks lain di luar JSON tersebut:
 {
   "highlight": "Highlight Utama (1 kalimat ringkas, padat, dan tebal, e.g., 'Kinerja Keuangan Kuartalan Meningkat')",
   "context": "Konteks Singkat (2-3 kalimat menjelaskan detail berita tersebut secara kronologis/kontekstual)",
@@ -102,7 +215,7 @@ Berikan ringkasan analisis dalam Bahasa Indonesia. Output Anda HARUS berupa obje
   ],
   "takeaway": "Kesimpulan Inti / Key Takeaway (1-2 kalimat kesimpulan mendalam bagi investor)"
 }
-Pastikan data valid dan format JSON valid.`;
+Pastikan data dan format JSON valid.`;
 
     if (geminiKey) {
       try {

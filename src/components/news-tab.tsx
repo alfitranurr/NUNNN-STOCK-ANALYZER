@@ -113,7 +113,8 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
           },
           body: JSON.stringify({
             title: article.title,
-            source: article.source
+            source: article.source,
+            link: article.link
           })
         });
 
