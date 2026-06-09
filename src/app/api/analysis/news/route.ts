@@ -123,48 +123,67 @@ Berikan kesimpulan dalam Bahasa Indonesia yang formal dan terstruktur. Output An
 3. Himbauan risiko atau rekomendasi singkat bagi investor.
 Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }]
-        }),
-        cache: 'no-store'
+  const models = [
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3-flash-preview'
+  ];
+
+  let lastError = null;
+  for (const model of models) {
+    try {
+      console.log(`Attempting Gemini ticker sentiment analysis using model: ${model}`);
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }]
+          }),
+          cache: 'no-store'
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Response status ${response.status}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`Gemini API responded with status ${response.status}`);
+      const data = await response.json();
+      const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!textResult) {
+        throw new Error('Empty response content');
+      }
+
+      // Determine sentiment from text
+      let sentiment = 'Netral';
+      const textLower = textResult.toLowerCase();
+      if (textLower.includes('bullish') || textLower.includes('positif')) {
+        sentiment = 'Bullish';
+      } else if (textLower.includes('bearish') || textLower.includes('negatif')) {
+        sentiment = 'Bearish';
+      }
+
+      console.log(`Successfully generated ticker sentiment using model: ${model}`);
+      return {
+        sentiment,
+        summary: textResult,
+        isAI: true,
+        modelUsed: model
+      };
+    } catch (err: any) {
+      console.warn(`Failed to get Gemini summary for model ${model}:`, err.message);
+      lastError = err;
     }
-
-    const data = await response.json();
-    const textResult = data.contents?.[0]?.parts?.[0]?.text;
-    
-    // Determine sentiment from text
-    let sentiment = 'Netral';
-    const textLower = (textResult || '').toLowerCase();
-    if (textLower.includes('bullish') || textLower.includes('positif')) {
-      sentiment = 'Bullish';
-    } else if (textLower.includes('bearish') || textLower.includes('negatif')) {
-      sentiment = 'Bearish';
-    }
-
-    return {
-      sentiment,
-      summary: textResult || '',
-      isAI: true
-    };
-  } catch (err: any) {
-    console.error('Failed to get Gemini summary, falling back to local analysis:', err.message);
-    return null;
   }
+  console.error('All Gemini models failed in getGeminiSummary, last error:', lastError?.message);
+  return null;
 }
 
 // Call OpenAI API for summary

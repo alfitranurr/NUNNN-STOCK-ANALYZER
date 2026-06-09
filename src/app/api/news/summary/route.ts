@@ -203,7 +203,9 @@ Sumber: "${source}"\n`;
       prompt += `\nKonten Lengkap Artikel:\n"""\n${articleContent}\n"""\n`;
     }
 
-    prompt += `\nBerikan ringkasan analisis mendalam dalam Bahasa Indonesia berdasarkan data yang tersedia di atas. Output Anda HARUS berupa objek JSON dengan format persis seperti di bawah ini dan tidak ada penjelasan/teks lain di luar JSON tersebut:
+    const promptGemini = prompt + `\nBerikan analisis mendalam dan ringkasan berita tersebut dalam Bahasa Indonesia.`;
+
+    const promptOpenAI = prompt + `\nBerikan ringkasan analisis mendalam dalam Bahasa Indonesia berdasarkan data yang tersedia di atas. Output Anda HARUS berupa objek JSON dengan format persis seperti di bawah ini dan tidak ada penjelasan/teks lain di luar JSON tersebut:
 {
   "highlight": "Highlight Utama (1 kalimat ringkas, padat, dan tebal, e.g., 'Kinerja Keuangan Kuartalan Meningkat')",
   "context": "Konteks Singkat (2-3 kalimat menjelaskan detail berita tersebut secara kronologis/kontekstual)",
@@ -218,39 +220,79 @@ Sumber: "${source}"\n`;
 Pastikan data dan format JSON valid.`;
 
     if (geminiKey) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{ text: prompt }]
-              }],
-              generationConfig: {
-                responseMimeType: "application/json"
-              }
-            }),
-            cache: 'no-store'
-          }
-        );
+      const models = [
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-3.1-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3-flash-preview'
+      ];
+      
+      let lastError = null;
+      for (const model of models) {
+        try {
+          console.log(`Attempting Gemini summary using model: ${model}`);
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [{ text: promptGemini }]
+                }],
+                generationConfig: {
+                  responseMimeType: "application/json",
+                  responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                      highlight: {
+                        type: "STRING",
+                        description: "Highlight Utama (1 kalimat ringkas, padat, dan tebal tentang inti berita)."
+                      },
+                      context: {
+                        type: "STRING",
+                        description: "Konteks Singkat (2-3 kalimat menjelaskan detail berita tersebut secara kronologis/kontekstual)."
+                      },
+                      keyFindings: {
+                        type: "ARRAY",
+                        items: {
+                          type: "STRING"
+                        },
+                        description: "Temuan kunci berupa poin-poin penting (3-4 poin)."
+                      },
+                      takeaway: {
+                        type: "STRING",
+                        description: "Kesimpulan Inti / Key Takeaway (1-2 kalimat kesimpulan mendalam bagi investor)."
+                      }
+                    },
+                    required: ["highlight", "context", "keyFindings", "takeaway"]
+                  }
+                }
+              }),
+              cache: 'no-store'
+            }
+          );
 
-        if (response.ok) {
-          const data = await response.json();
-          const textResult = data.contents?.[0]?.parts?.[0]?.text;
-          if (textResult) {
-            const cleanText = cleanJsonString(textResult);
-            const parsed = JSON.parse(cleanText);
-            return NextResponse.json({ ...parsed, isAI: true });
+          if (response.ok) {
+            const data = await response.json();
+            const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (textResult) {
+              const cleanText = cleanJsonString(textResult);
+              const parsed = JSON.parse(cleanText);
+              console.log(`Successfully generated summary using model: ${model}`);
+              return NextResponse.json({ ...parsed, isAI: true, modelUsed: model });
+            }
           }
+          throw new Error(`Response status ${response.status}`);
+        } catch (geminiErr: any) {
+          console.warn(`Gemini summary failed for model ${model}:`, geminiErr.message);
+          lastError = geminiErr;
         }
-        throw new Error(`Gemini response not ok: ${response.status}`);
-      } catch (geminiErr: any) {
-        console.error('Gemini summary failed, checking OpenAI:', geminiErr.message);
       }
+      console.error('All Gemini models failed, checking OpenAI. Last error:', lastError?.message);
     }
 
     if (openAIKey) {
@@ -265,7 +307,7 @@ Pastikan data dan format JSON valid.`;
             },
             body: JSON.stringify({
               model: 'gpt-3.5-turbo',
-              messages: [{ role: 'user', content: prompt }],
+              messages: [{ role: 'user', content: promptOpenAI }],
               temperature: 0.5,
               response_format: { type: "json_object" }
             }),
