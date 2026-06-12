@@ -34,6 +34,7 @@ interface AISummary {
   takeaway: string;
   isAI?: boolean;
   isMock?: boolean;
+  modelUsed?: string;
 }
 
 export function NewsTab({ user, onSignInClick }: NewsTabProps) {
@@ -411,7 +412,11 @@ export function NewsTab({ user, onSignInClick }: NewsTabProps) {
                                 </span>
                               </div>
                               <span className="text-[9px] text-slate-500 font-semibold font-mono">
-                                {summary.isMock ? '★ Heuristic Engine' : '⚡ Gemini-Powered'}
+                                {summary.isMock 
+                                  ? '★ Heuristic Engine' 
+                                  : summary.modelUsed 
+                                    ? `⚡ ${summary.modelUsed.includes('gemini') ? 'Gemini' : summary.modelUsed.includes('llama') ? 'Groq' : 'OpenAI'}-Powered`
+                                    : '⚡ AI-Powered'}
                               </span>
                             </div>
 

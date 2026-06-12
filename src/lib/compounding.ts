@@ -193,7 +193,8 @@ export interface DailyCompoundingInput {
   contributionAmount: number;
   dailyReturnRate: number;
   durationDays: number;
-  taxRate: number;
+  feeBeli: number;
+  feeJual: number;
 }
 
 export interface DailyCompoundingDetail {
@@ -222,11 +223,13 @@ export function calculateDailyCompounding(input: DailyCompoundingInput): DailyCo
     contributionAmount,
     dailyReturnRate,
     durationDays,
-    taxRate
+    feeBeli,
+    feeJual
   } = input;
 
   const r_daily = dailyReturnRate / 100;
-  const t_rate = taxRate / 100;
+  const f_beli = feeBeli / 100;
+  const f_jual = feeJual / 100;
 
   const details: DailyCompoundingDetail[] = [];
   let currentBalance = initialAmount;
@@ -240,8 +243,14 @@ export function calculateDailyCompounding(input: DailyCompoundingInput): DailyCo
     const startingBalance = currentBalance;
     const deposit = contributionAmount;
 
+    // Gross daily target profit
     const interestEarned = startingBalance * r_daily;
-    const taxDeducted = interestEarned * t_rate;
+    
+    // Broker Buy and Sell fees
+    const buyFee = startingBalance * f_beli;
+    const sellFee = (startingBalance + interestEarned) * f_jual;
+    const taxDeducted = buyFee + sellFee;
+    
     const netInterest = interestEarned - taxDeducted;
 
     currentBalance = startingBalance + deposit + netInterest;

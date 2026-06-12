@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 function cleanXmlString(str: string) {
   return str
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const encodedQuery = encodeURIComponent(query);
+  const encodedQuery = encodeURIComponent(`${query} when:7d`);
   const feedUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=id&gl=ID&ceid=ID:id`;
 
   try {
@@ -82,7 +84,16 @@ export async function GET(request: NextRequest) {
     }
 
     const xmlText = await response.text();
-    const newsItems = parseRss(xmlText).slice(0, 15);
+    const parsedItems = parseRss(xmlText);
+
+    // Sort by publication date descending (newest first)
+    parsedItems.sort((a, b) => {
+      const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    const newsItems = parsedItems.slice(0, 15);
 
     return NextResponse.json({ news: newsItems });
   } catch (error: any) {

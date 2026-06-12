@@ -206,7 +206,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
     quarterly: { quarter: string; revenue: number; netIncome: number }[];
   } | null>(null);
   const [news, setNews] = React.useState<any[]>([]);
-  const [analysis, setAnalysis] = React.useState<{ sentiment: string; summary: string; isAI: boolean } | null>(null);
+  const [analysis, setAnalysis] = React.useState<{ sentiment: string; summary: string; isAI: boolean; modelUsed?: string } | null>(null);
   const [historyType, setHistoryType] = React.useState<'annual' | 'quarterly'>('annual');
   const [technicals, setTechnicals] = React.useState<any>(null);
   const [pivotMethod, setPivotMethod] = React.useState<'standard' | 'fibonacci'>('standard');
@@ -1610,7 +1610,13 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-purple">
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Analisis AI {analysis?.isAI ? '(Gemini/OpenAI)' : '(Sistem Lokal)'}</span>
+                  <span>
+                    Analisis AI {
+                      analysis?.isAI 
+                        ? `(${analysis.modelUsed?.includes('gemini') ? 'Gemini' : analysis.modelUsed?.includes('llama') ? 'Groq' : 'OpenAI'})` 
+                        : '(Sistem Lokal)'
+                    }
+                  </span>
                 </div>
                 <div className="text-xs text-slate-300 leading-relaxed bg-slate-900/40 p-4 rounded-xl border border-slate-900 whitespace-pre-line">
                   {loading ? (

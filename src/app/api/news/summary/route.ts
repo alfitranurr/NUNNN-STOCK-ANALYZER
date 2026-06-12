@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
     }
 
     const geminiKey = process.env.GEMINI_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
     const openAIKey = process.env.OPENAI_API_KEY;
 
     // Resolve original URL and fetch article text if link is provided
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!geminiKey && !openAIKey) {
+    if (!geminiKey && !groqKey && !openAIKey) {
       const mockData = generateMockSummary(title, source);
       return NextResponse.json({ ...mockData, isMock: true });
     }
@@ -292,7 +293,44 @@ Pastikan data dan format JSON valid.`;
           lastError = geminiErr;
         }
       }
-      console.error('All Gemini models failed, checking OpenAI. Last error:', lastError?.message);
+      console.error('All Gemini models failed, checking Groq. Last error:', lastError?.message);
+    }
+
+    if (groqKey) {
+      try {
+        console.log('Attempting Groq summary using model: llama-3.3-70b-versatile');
+        const response = await fetch(
+          'https://api.groq.com/openai/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${groqKey}`
+            },
+            body: JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              messages: [{ role: 'user', content: promptOpenAI }],
+              temperature: 0.5,
+              response_format: { type: "json_object" }
+            }),
+            cache: 'no-store'
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const textResult = data.choices?.[0]?.message?.content;
+          if (textResult) {
+            const cleanText = cleanJsonString(textResult);
+            const parsed = JSON.parse(cleanText);
+            console.log('Successfully generated summary using Groq model: llama-3.3-70b-versatile');
+            return NextResponse.json({ ...parsed, isAI: true, modelUsed: 'llama-3.3-70b-versatile' });
+          }
+        }
+        throw new Error(`Groq API responded with status ${response.status}`);
+      } catch (groqErr: any) {
+        console.error('Groq summary failed, checking OpenAI. Error:', groqErr.message);
+      }
     }
 
     if (openAIKey) {

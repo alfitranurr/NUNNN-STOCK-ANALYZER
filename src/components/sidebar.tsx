@@ -114,7 +114,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                       }
                     }}
                     className={cn(
-                      "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer",
+                      "w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer text-left",
                       currentTab === item.id && item.active
                         ? "bg-brand-purple/10 border-brand-purple/30 text-brand-purple"
                         : "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-input-bg",
@@ -123,7 +123,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
                   >
                     <div className="flex items-center gap-3">
                       <item.icon className={cn("h-5 w-5", currentTab === item.id && "text-brand-purple")} />
-                      <span className="font-medium text-sm">{item.label}</span>
+                      <span className="font-medium text-sm text-left">{item.label}</span>
                     </div>
                     {item.labelBadge && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
@@ -213,7 +213,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               key={item.id}
               onClick={() => item.active && setCurrentTab(item.id)}
               className={cn(
-                "w-full flex items-center gap-3.5 py-3 rounded-xl transition-all duration-300 border relative group/item cursor-pointer",
+                "w-full flex items-center gap-3.5 py-3 rounded-xl transition-all duration-300 border relative group/item cursor-pointer text-left",
                 isCollapsed ? "justify-center px-0" : "justify-between px-4.5",
                 currentTab === item.id && item.active
                   ? "bg-brand-purple/10 border-brand-purple/20 text-brand-purple dark:text-brand-purple font-semibold"
@@ -224,7 +224,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             >
               <div className="flex items-center gap-3.5">
                 <item.icon className={cn("h-5.5 w-5.5 transition-transform duration-300 group-hover/item:scale-110", currentTab === item.id && "text-brand-purple")} />
-                {!isCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                {!isCollapsed && <span className="text-sm font-medium text-left">{item.label}</span>}
               </div>
               {!isCollapsed && item.labelBadge && (
                 <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-sm">

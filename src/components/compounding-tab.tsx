@@ -58,6 +58,28 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
   const [inflationRateStr, setInflationRateStr] = React.useState('4');
   const [taxRateStr, setTaxRateStr] = React.useState('0');
 
+  // Daily trading fees (similar to avg down)
+  const [dailyBrokerPreset, setDailyBrokerPreset] = React.useState('stockbit');
+  const [dailyFeeBeliStr, setDailyFeeBeliStr] = React.useState('0.15');
+  const [dailyFeeJualStr, setDailyFeeJualStr] = React.useState('0.25');
+
+  const handleDailyPresetChange = (presetId: string) => {
+    setDailyBrokerPreset(presetId);
+    if (presetId === 'none') {
+      setDailyFeeBeliStr('0');
+      setDailyFeeJualStr('0');
+    } else if (presetId === 'stockbit' || presetId === 'ajaib') {
+      setDailyFeeBeliStr('0.15');
+      setDailyFeeJualStr('0.25');
+    } else if (presetId === 'ipot') {
+      setDailyFeeBeliStr('0.19');
+      setDailyFeeJualStr('0.29');
+    } else if (presetId === 'custom') {
+      setDailyFeeBeliStr('0.20');
+      setDailyFeeJualStr('0.30');
+    }
+  };
+
   // Plan Title state for saving
   const [planTitle, setPlanTitle] = React.useState('');
   const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
@@ -109,14 +131,15 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
     contributionAmount: parseFormattedNumber(contributionAmountStr),
     dailyReturnRate: parseFloat(annualReturnRateStr) || 0,
     durationDays: parseInt(durationDaysStr, 10) || 0,
-    taxRate: parseFloat(taxRateStr) || 0,
+    feeBeli: parseFloat(dailyFeeBeliStr) || 0,
+    feeJual: parseFloat(dailyFeeJualStr) || 0,
   };
 
   const dailyResults = React.useMemo(() => {
     return calculateDailyCompounding(dailyInput);
   }, [
     initialAmountStr, contributionAmountStr, annualReturnRateStr,
-    durationDaysStr, taxRateStr
+    durationDaysStr, dailyBrokerPreset, dailyFeeBeliStr, dailyFeeJualStr
   ]);
 
   const isDaily = calcMode === 'daily';
@@ -172,7 +195,9 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
     const dbDurationYears = isDaily ? 0 : input.durationYears;
     const dbDurationMonths = isDaily ? (parseInt(durationDaysStr, 10) || 0) : input.durationMonths;
     const dbContributionFreq = isDaily ? 'daily' : contributionFrequency;
-    const dbInflationRate = isDaily ? 0 : input.inflationRate;
+
+    const feeBeliVal = parseFloat(dailyFeeBeliStr) || 0;
+    const feeJualVal = parseFloat(dailyFeeJualStr) || 0;
 
     const planData = {
       title: planTitle,
@@ -183,8 +208,8 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       compounding_frequency: dbCompoundingFreq,
       duration_years: dbDurationYears,
       duration_months: dbDurationMonths,
-      inflation_rate: dbInflationRate,
-      tax_rate: parseFloat(taxRateStr) || 0,
+      inflation_rate: isDaily ? feeJualVal : (parseFloat(inflationRateStr) || 0),
+      tax_rate: isDaily ? feeBeliVal : (parseFloat(taxRateStr) || 0),
     };
 
     if (isSupabaseConfigured && user && !user.isMock) {
@@ -255,7 +280,27 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       setContributionAmountStr(formatNumberForInput(plan.contribution_amount));
       setAnnualReturnRateStr(plan.annual_return_rate.toString());
       setDurationDaysStr(plan.duration_months.toString());
-      setTaxRateStr(plan.tax_rate.toString());
+      
+      const fBeli = plan.tax_rate || 0;
+      const fJual = plan.inflation_rate || 0;
+
+      if (fBeli === 0 && fJual === 0) {
+        setDailyBrokerPreset('none');
+        setDailyFeeBeliStr('0');
+        setDailyFeeJualStr('0');
+      } else if (fBeli === 0.15 && fJual === 0.25) {
+        setDailyBrokerPreset('stockbit');
+        setDailyFeeBeliStr('0.15');
+        setDailyFeeJualStr('0.25');
+      } else if (fBeli === 0.19 && fJual === 0.29) {
+        setDailyBrokerPreset('ipot');
+        setDailyFeeBeliStr('0.19');
+        setDailyFeeJualStr('0.29');
+      } else {
+        setDailyBrokerPreset('custom');
+        setDailyFeeBeliStr(fBeli.toString());
+        setDailyFeeJualStr(fJual.toString());
+      }
     } else {
       setCalcMode('standard');
       setInitialAmountStr(formatNumberForInput(plan.initial_amount));
@@ -272,12 +317,97 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
   };
 
   // Formatting Rupiah values
-  const formatIDR = (value: number) => {
-    const formatted = new Intl.NumberFormat('en-US', {
+  const formatIDR = (value: number, isShort = false) => {
+    const absVal = Math.abs(value);
+    
+    if (isShort) {
+      let suffix = '';
+      let formattedVal = absVal;
+
+      if (absVal >= 1e24) {
+        formattedVal = absVal / 1e24;
+        suffix = ' Septiliun';
+      } else if (absVal >= 1e21) {
+        formattedVal = absVal / 1e21;
+        suffix = ' Sekstiliun';
+      } else if (absVal >= 1e18) {
+        formattedVal = absVal / 1e18;
+        suffix = ' Kuintiliun';
+      } else if (absVal >= 1e15) {
+        formattedVal = absVal / 1e15;
+        suffix = ' Kuadriliun';
+      } else if (absVal >= 1e12) {
+        formattedVal = absVal / 1e12;
+        suffix = ' Triliun';
+      } else if (absVal >= 1e9) {
+        formattedVal = absVal / 1e9;
+        suffix = ' Miliar';
+      } else if (absVal >= 1e6) {
+        formattedVal = absVal / 1e6;
+        suffix = ' Juta';
+      }
+
+      if (suffix) {
+        const formatted = new Intl.NumberFormat('id-ID', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(formattedVal);
+        return value < 0 ? `-Rp ${formatted}${suffix}` : `Rp ${formatted}${suffix}`;
+      }
+    }
+
+    const formatted = new Intl.NumberFormat('id-ID', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(Math.abs(value));
+    }).format(absVal);
     return value < 0 ? `-Rp ${formatted}` : `Rp ${formatted}`;
+  };
+
+  // Formatting Percentage values
+  const formatPercentage = (val: number, isShort = false) => {
+    const absVal = Math.abs(val);
+    
+    if (isShort) {
+      let suffix = '';
+      let formattedVal = absVal;
+
+      if (absVal >= 1e24) {
+        formattedVal = absVal / 1e24;
+        suffix = ' Septiliun';
+      } else if (absVal >= 1e21) {
+        formattedVal = absVal / 1e21;
+        suffix = ' Sekstiliun';
+      } else if (absVal >= 1e18) {
+        formattedVal = absVal / 1e18;
+        suffix = ' Kuintiliun';
+      } else if (absVal >= 1e15) {
+        formattedVal = absVal / 1e15;
+        suffix = ' Kuadriliun';
+      } else if (absVal >= 1e12) {
+        formattedVal = absVal / 1e12;
+        suffix = ' Triliun';
+      } else if (absVal >= 1e9) {
+        formattedVal = absVal / 1e9;
+        suffix = ' Miliar';
+      } else if (absVal >= 1e6) {
+        formattedVal = absVal / 1e6;
+        suffix = ' Juta';
+      }
+
+      if (suffix) {
+        const formatted = new Intl.NumberFormat('id-ID', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(formattedVal);
+        return `${val >= 0 ? '+' : '-'}${formatted}${suffix}%`;
+      }
+    }
+
+    const formatted = new Intl.NumberFormat('id-ID', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(absVal);
+    return `${val >= 0 ? '+' : '-'}${formatted}%`;
   };
 
   // CSV Export
@@ -552,18 +682,6 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       <div className="flex bg-input-bg border border-border-color p-1 rounded-2xl text-[11px] font-extrabold max-w-md no-print select-none">
         <button
           onClick={() => {
-            setCalcMode('standard');
-            if (annualReturnRateStr === '5') setAnnualReturnRateStr('10');
-            if (contributionAmountStr === '0') setContributionAmountStr('1,000,000');
-          }}
-          className={`flex-1 py-2 rounded-xl transition-all cursor-pointer text-center ${
-            calcMode === 'standard' ? 'bg-brand-purple text-white shadow-md' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          Investasi Jangka Panjang
-        </button>
-        <button
-          onClick={() => {
             setCalcMode('daily');
             if (annualReturnRateStr === '10') setAnnualReturnRateStr('5');
             if (contributionAmountStr === '1,000,000') setContributionAmountStr('0');
@@ -573,6 +691,18 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
           }`}
         >
           Rencana Trading Harian
+        </button>
+        <button
+          onClick={() => {
+            setCalcMode('standard');
+            if (annualReturnRateStr === '5') setAnnualReturnRateStr('10');
+            if (contributionAmountStr === '0') setContributionAmountStr('1,000,000');
+          }}
+          className={`flex-1 py-2 rounded-xl transition-all cursor-pointer text-center ${
+            calcMode === 'standard' ? 'bg-brand-purple text-white shadow-md' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Investasi Jangka Panjang
         </button>
       </div>
 
@@ -650,21 +780,55 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                 </div>
               </div>
 
-              {/* Pajak per Hari / Transaksi (%) */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">5. Pajak / Transaksi (%) - Opsional</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={taxRateStr}
-                    onChange={(e) => setTaxRateStr(e.target.value)}
-                    className="w-full glass-input pl-3 pr-8 py-2.5 text-xs font-bold text-white text-center bg-black/25 focus:bg-background"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">%</span>
-                </div>
+              {/* Broker Fee Settings */}
+              <div className="flex flex-col gap-1.5 shrink-0">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">5. Broker Fee</label>
+                <select
+                  value={dailyBrokerPreset}
+                  onChange={(e) => handleDailyPresetChange(e.target.value)}
+                  className="w-full glass-input px-3 py-2.5 text-xs font-bold cursor-pointer text-foreground bg-background text-center"
+                >
+                  <option value="stockbit">Stockbit (Buy 0.15% / Sell 0.25%)</option>
+                  <option value="ajaib">Ajaib (Buy 0.15% / Sell 0.25%)</option>
+                  <option value="ipot">IPOT (Buy 0.19% / Sell 0.29%)</option>
+                  <option value="custom">Custom Fee</option>
+                  <option value="none">Tanpa Fee (0.00%)</option>
+                </select>
+                
+                {dailyBrokerPreset === 'custom' && (
+                  <div className="grid grid-cols-2 gap-2 mt-1.5 animate-fadeIn">
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="10"
+                          value={dailyFeeBeliStr}
+                          onChange={(e) => setDailyFeeBeliStr(e.target.value)}
+                          className="w-full glass-input pl-2 pr-5 py-1.5 text-[10px] text-center font-bold"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-500">%</span>
+                      </div>
+                      <span className="text-[8px] text-slate-500 text-center block mt-0.5">Fee Beli</span>
+                    </div>
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="10"
+                          value={dailyFeeJualStr}
+                          onChange={(e) => setDailyFeeJualStr(e.target.value)}
+                          className="w-full glass-input pl-2 pr-5 py-1.5 text-[10px] text-center font-bold"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-500">%</span>
+                      </div>
+                      <span className="text-[8px] text-slate-500 text-center block mt-0.5">Fee Jual</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -816,75 +980,103 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
         {isDaily ? (
           <>
-            <div className="glass-card p-4.5 bg-brand-purple/5 border-brand-purple/20">
+            <div className="glass-card p-4.5 bg-brand-purple/5 border-brand-purple/20 overflow-hidden">
               <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
                 Modal Akhir (Hari ke-{durationDaysStr})
               </span>
-              <h3 className="text-xl font-black text-brand-purple mt-1 tracking-tight">
-                {formatIDR(dailyResults.nominalEndingBalance)}
+              <h3 
+                className="text-lg md:text-xl font-black text-brand-purple mt-1 tracking-tight truncate"
+                title={formatIDR(dailyResults.nominalEndingBalance, false)}
+              >
+                {formatIDR(dailyResults.nominalEndingBalance, true)}
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20">
+            <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20 overflow-hidden">
               <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block">
                 Return Total
               </span>
-              <h3 className="text-xl font-black text-blue-400 mt-1 tracking-tight">
+              <h3 
+                className="text-lg md:text-xl font-black text-blue-400 mt-1 tracking-tight truncate"
+                title={(() => {
+                  const dailyReturnPct = dailyResults.totalDeposits > 0 
+                    ? ((dailyResults.nominalEndingBalance - dailyResults.totalDeposits) / dailyResults.totalDeposits) * 100
+                    : 0;
+                  return formatPercentage(dailyReturnPct, false);
+                })()}
+              >
                 {(() => {
                   const dailyReturnPct = dailyResults.totalDeposits > 0 
                     ? ((dailyResults.nominalEndingBalance - dailyResults.totalDeposits) / dailyResults.totalDeposits) * 100
                     : 0;
-                  const returnSign = dailyReturnPct >= 0 ? '+' : '';
-                  return `${returnSign}${dailyReturnPct.toFixed(2).replace('.', ',')}%`;
+                  return formatPercentage(dailyReturnPct, true);
                 })()}
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5">
+            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5 overflow-hidden">
               <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
                 Total Disetor
               </span>
-              <h3 className="text-xl font-bold text-white mt-1 tracking-tight">
-                {formatIDR(dailyResults.totalDeposits)}
+              <h3 
+                className="text-lg md:text-xl font-bold text-white mt-1 tracking-tight truncate"
+                title={formatIDR(dailyResults.totalDeposits, false)}
+              >
+                {formatIDR(dailyResults.totalDeposits, true)}
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5">
+            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5 overflow-hidden">
               <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
                 Total Profit
               </span>
-              <h3 className="text-xl font-bold text-white mt-1 tracking-tight">
-                {formatIDR(dailyResults.nominalEndingBalance - dailyResults.totalDeposits)}
+              <h3 
+                className="text-lg md:text-xl font-bold text-white mt-1 tracking-tight truncate"
+                title={formatIDR(dailyResults.nominalEndingBalance - dailyResults.totalDeposits, false)}
+              >
+                {formatIDR(dailyResults.nominalEndingBalance - dailyResults.totalDeposits, true)}
               </h3>
             </div>
           </>
         ) : (
           <>
-            <div className="glass-card p-4.5 bg-brand-purple/5 border-brand-purple/20">
+            <div className="glass-card p-4.5 bg-brand-purple/5 border-brand-purple/20 overflow-hidden">
               <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">Total Nilai Akhir</span>
-              <h3 className="text-xl font-black text-brand-purple mt-1 tracking-tight">
-                {formatIDR(results.nominalEndingBalance)}
+              <h3 
+                className="text-lg md:text-xl font-black text-brand-purple mt-1 tracking-tight truncate"
+                title={formatIDR(results.nominalEndingBalance, false)}
+              >
+                {formatIDR(results.nominalEndingBalance, true)}
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20">
+            <div className="glass-card p-4.5 bg-blue-500/5 border-blue-500/20 overflow-hidden">
               <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block">Nilai Riil (Inflasi)</span>
-              <h3 className="text-xl font-black text-blue-400 mt-1 tracking-tight">
-                {formatIDR(results.realEndingBalance)}
+              <h3 
+                className="text-lg md:text-xl font-black text-blue-400 mt-1 tracking-tight truncate"
+                title={formatIDR(results.realEndingBalance, false)}
+              >
+                {formatIDR(results.realEndingBalance, true)}
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5">
+            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5 overflow-hidden">
               <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Total Disetor</span>
-              <h3 className="text-xl font-bold text-white mt-1 tracking-tight">
-                {formatIDR(results.totalDeposits)}
+              <h3 
+                className="text-lg md:text-xl font-bold text-white mt-1 tracking-tight truncate"
+                title={formatIDR(results.totalDeposits, false)}
+              >
+                {formatIDR(results.totalDeposits, true)}
               </h3>
             </div>
 
-            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5">
+            <div className="glass-card p-4.5 border-slate-200 dark:border-white/5 overflow-hidden">
               <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Hasil Bunga Bersih</span>
-              <h3 className="text-xl font-bold text-white mt-1 tracking-tight">
-                {formatIDR(results.nominalEndingBalance - results.totalDeposits)}
+              <h3 
+                className="text-lg md:text-xl font-bold text-white mt-1 tracking-tight truncate"
+                title={formatIDR(results.nominalEndingBalance - results.totalDeposits, false)}
+              >
+                {formatIDR(results.nominalEndingBalance - results.totalDeposits, true)}
               </h3>
             </div>
           </>

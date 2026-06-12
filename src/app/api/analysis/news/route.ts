@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 function cleanXmlString(str: string) {
   return str
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
@@ -186,6 +188,64 @@ Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
   return null;
 }
 
+// Call Groq API for summary
+async function getGroqSummary(symbol: string, news: any[], apiKey: string) {
+  const prompt = `Anda adalah analis saham profesional Indonesia. Analisislah sentimen dari ${news.length} berita saham berikut untuk emiten "${symbol}":
+${news.map((n, i) => `${i+1}. [${n.source}] ${n.title}`).join('\n')}
+
+Berikan kesimpulan dalam Bahasa Indonesia yang formal dan terstruktur. Output Anda HARUS mengandung format berikut:
+1. Ringkasan singkat sentimen keseluruhan (Bullish, Bearish, atau Netral).
+2. Tiga poin analisis/sentimen utama yang sedang hangat (dalam bentuk bullet-points).
+3. Himbauan risiko atau rekomendasi singkat bagi investor.
+Usahakan agar output ringkas dan langsung dapat dipahami investor profesional.`;
+
+  try {
+    console.log('Attempting Groq ticker sentiment analysis using model: llama-3.3-70b-versatile');
+    const response = await fetch(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7
+        }),
+        cache: 'no-store'
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Groq API responded with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const textResult = data.choices?.[0]?.message?.content;
+
+    let sentiment = 'Netral';
+    const textLower = (textResult || '').toLowerCase();
+    if (textLower.includes('bullish') || textLower.includes('positif')) {
+      sentiment = 'Bullish';
+    } else if (textLower.includes('bearish') || textLower.includes('negatif')) {
+      sentiment = 'Bearish';
+    }
+
+    console.log('Successfully generated ticker sentiment using Groq model: llama-3.3-70b-versatile');
+    return {
+      sentiment,
+      summary: textResult || '',
+      isAI: true,
+      modelUsed: 'llama-3.3-70b-versatile'
+    };
+  } catch (err: any) {
+    console.error('Failed to get Groq summary, checking OpenAI:', err.message);
+    return null;
+  }
+}
+
 // Call OpenAI API for summary
 async function getOpenAISummary(symbol: string, news: any[], apiKey: string) {
   const prompt = `Anda adalah analis saham profesional Indonesia. Analisislah sentimen dari ${news.length} berita saham berikut untuk emiten "${symbol}":
@@ -283,7 +343,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Search Google News RSS feed for the stock news
-    const query = encodeURIComponent(`${rawSymbol} saham`);
+    const query = encodeURIComponent(`${rawSymbol} saham when:7d`);
     const feedUrl = `https://news.google.com/rss/search?q=${query}&hl=id&gl=ID&ceid=ID:id`;
 
     let newsItems: any[] = [];
@@ -299,7 +359,7 @@ export async function GET(request: NextRequest) {
 
       if (response.ok) {
         const xmlText = await response.text();
-        newsItems = parseRss(xmlText).slice(0, 10);
+        newsItems = parseRss(xmlText);
       } else {
         fetchErrorMsg = `HTTP ${response.status} Service Unavailable`;
       }
@@ -319,11 +379,21 @@ export async function GET(request: NextRequest) {
         });
         if (yResponse.ok) {
           const xmlText = await yResponse.text();
-          newsItems = parseRss(xmlText).slice(0, 10);
+          newsItems = parseRss(xmlText);
         }
       } catch (yErr: any) {
         console.warn('Failed to fetch news from Yahoo Finance RSS:', yErr.message);
       }
+    }
+
+    // Sort by publication date descending (newest first)
+    if (newsItems.length > 0) {
+      newsItems.sort((a, b) => {
+        const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+        const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+        return dateB - dateA;
+      });
+      newsItems = newsItems.slice(0, 10);
     }
 
     // Tertiary fallback: If still empty, use generated fallback headlines
@@ -333,6 +403,7 @@ export async function GET(request: NextRequest) {
 
     // Check for API Keys to generate AI narrative summary
     const geminiKey = process.env.GEMINI_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
     const openAIKey = process.env.OPENAI_API_KEY;
 
     let analysisResult = null;
@@ -340,7 +411,13 @@ export async function GET(request: NextRequest) {
     if (newsItems.length > 0) {
       if (geminiKey) {
         analysisResult = await getGeminiSummary(rawSymbol, newsItems, geminiKey);
-      } else if (openAIKey) {
+      }
+      
+      if (!analysisResult && groqKey) {
+        analysisResult = await getGroqSummary(rawSymbol, newsItems, groqKey);
+      }
+      
+      if (!analysisResult && openAIKey) {
         analysisResult = await getOpenAISummary(rawSymbol, newsItems, openAIKey);
       }
     }
