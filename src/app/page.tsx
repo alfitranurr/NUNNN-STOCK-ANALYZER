@@ -441,15 +441,31 @@ export default function Dashboard() {
 
       {/* Main Dashboard Panel */}
       <main className={`flex-1 min-w-0 transition-[padding-left] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] pt-16 md:pt-0 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[260px]'}`}>
-        <motion.div
-          key={currentTab}
-          initial={{ opacity: 0, y: 40, filter: 'blur(12px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-          className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8"
-        >
-          {currentTab === 'avg-down' ? (
-            <>
+        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto space-y-6 md:space-y-8">
+          
+          {/* 1. News & Sentiment Tab */}
+          <div className={currentTab === 'news' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'news' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 md:space-y-8"
+            >
+              <NewsTab
+                user={user}
+                onSignInClick={() => setIsAuthModalOpen(true)}
+              />
+            </motion.div>
+          </div>
+
+          {/* 2. Average Down Tab */}
+          <div className={currentTab === 'avg-down' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'avg-down' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 md:space-y-8"
+            >
               {/* Header */}
               <div>
                 <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-2">
@@ -503,40 +519,75 @@ export default function Dashboard() {
                   user={user}
                 />
               </div>
-            </>
-          ) : currentTab === 'compounding' ? (
-            <CompoundingTab
-              user={user}
-              onSignInClick={() => setIsAuthModalOpen(true)}
-            />
-          ) : currentTab === 'portfolio' ? (
-            <PortfolioTab
-              user={user}
-              onSignInClick={() => setIsAuthModalOpen(true)}
-              onAvgDownClick={handleAvgDownFromPortfolio}
-              onAnalyzeClick={handleAnalyzeFromPortfolio}
-            />
-          ) : currentTab === 'analysis' ? (
-            <AnalysisTab
-              user={user}
-              onSignInClick={() => setIsAuthModalOpen(true)}
-              initialTicker={selectedAnalysisTicker}
-            />
-          ) : currentTab === 'admin' ? (
-            <AdminPanelTab user={user} />
-          ) : (
-            <NewsTab
-              user={user}
-              onSignInClick={() => setIsAuthModalOpen(true)}
-            />
-          )}
-          
+            </motion.div>
+          </div>
+
+          {/* 3. Compounding Tab */}
+          <div className={currentTab === 'compounding' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'compounding' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 md:space-y-8"
+            >
+              <CompoundingTab
+                user={user}
+                onSignInClick={() => setIsAuthModalOpen(true)}
+              />
+            </motion.div>
+          </div>
+
+          {/* 4. Portfolio Tab */}
+          <div className={currentTab === 'portfolio' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'portfolio' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 md:space-y-8"
+            >
+              <PortfolioTab
+                user={user}
+                onSignInClick={() => setIsAuthModalOpen(true)}
+                onAvgDownClick={handleAvgDownFromPortfolio}
+                onAnalyzeClick={handleAnalyzeFromPortfolio}
+              />
+            </motion.div>
+          </div>
+
+          {/* 5. Analysis Tab */}
+          <div className={currentTab === 'analysis' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'analysis' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 md:space-y-8"
+            >
+              <AnalysisTab
+                user={user}
+                onSignInClick={() => setIsAuthModalOpen(true)}
+                initialTicker={selectedAnalysisTicker}
+              />
+            </motion.div>
+          </div>
+
+          {/* 6. Admin Panel Tab */}
+          <div className={currentTab === 'admin' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'admin' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 md:space-y-8"
+            >
+              <AdminPanelTab user={user} />
+            </motion.div>
+          </div>
+
           {/* Footer branding */}
           <div className="text-center text-[10px] text-slate-500 pt-6 pb-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5">
             <span>© 2025 Al Fitra Nur Ramadhani. All rights reserved.</span>
           </div>
 
-        </motion.div>
+        </div>
       </main>
 
       {/* Authentication Modal */}

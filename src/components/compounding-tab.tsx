@@ -515,7 +515,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
   // SVG Chart Geometry
   const svgWidth = 800;
   const svgHeight = 300;
-  const chartMargin = { top: 20, right: 30, bottom: 40, left: 80 };
+  const chartMargin = { top: 20, right: 0, bottom: 30, left: 0 };
   const plotWidth = svgWidth - chartMargin.left - chartMargin.right;
   const plotHeight = svgHeight - chartMargin.top - chartMargin.bottom;
 
@@ -1091,7 +1091,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
         </h3>
 
         {/* Custom Interactive SVG Graph */}
-        <div className="relative w-full h-[300px]">
+        <div className="relative -mx-5 md:-mx-6 h-[300px] w-[calc(100%+2.5rem)] md:w-[calc(100%+3rem)]">
           <svg 
             ref={chartRef}
             viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
@@ -1140,21 +1140,30 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               <path d={realLinePath} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 4" />
             )}
 
-            {/* X-Axis labels (only show 5-6 labels maximum) */}
             {chartData.map((d, i) => {
               const total = chartData.length;
               const step = Math.max(1, Math.ceil(total / 6));
               if (i % step !== 0 && i !== total - 1) return null;
               
+              let anchor: "start" | "middle" | "end" = "middle";
+              let xPos = getX(i);
+              if (i === 0) {
+                anchor = "start";
+                xPos += 20;
+              } else if (i === total - 1) {
+                anchor = "end";
+                xPos -= 20;
+              }
+
               return (
                 <text
                   key={i}
-                  x={getX(i)}
-                  y={svgHeight - 12}
+                  x={xPos}
+                  y={svgHeight - 10}
                   fill="rgba(255,255,255,0.4)"
                   fontSize="9"
                   fontWeight="bold"
-                  textAnchor="middle"
+                  textAnchor={anchor}
                 >
                   {d.label}
                 </text>
@@ -1181,12 +1190,12 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
               return (
                 <text
                   key={i}
-                  x={chartMargin.left - 10}
-                  y={y + 3.5}
-                  fill="rgba(255,255,255,0.4)"
+                  x={10}
+                  y={y - 6}
+                  fill="rgba(255,255,255,0.55)"
                   fontSize="9"
                   fontWeight="bold"
-                  textAnchor="end"
+                  textAnchor="start"
                 >
                   {formatted}
                 </text>
@@ -1204,6 +1213,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                   stroke="rgba(255, 255, 255, 0.2)"
                   strokeWidth="1.5"
                   strokeDasharray="3 3"
+                  className="pointer-events-none"
                 />
 
                 {/* Nominal Dot */}
@@ -1214,6 +1224,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                   fill="#00b15b"
                   stroke="#121518"
                   strokeWidth="2"
+                  className="pointer-events-none"
                 />
 
                 {/* Deposits Dot */}
@@ -1224,6 +1235,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                   fill="#4f46e5"
                   stroke="#121518"
                   strokeWidth="1.5"
+                  className="pointer-events-none"
                 />
 
                 {/* Real Value Dot */}
@@ -1235,6 +1247,7 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
                     fill="#3b82f6"
                     stroke="#121518"
                     strokeWidth="1.5"
+                    className="pointer-events-none"
                   />
                 )}
               </>
@@ -1244,9 +1257,9 @@ export function CompoundingTab({ user, onSignInClick }: CompoundingTabProps) {
           {/* Float HTML Tooltip Box on Hover */}
           {hoveredIndex !== null && hoveredIndex < chartData.length && (
             <div 
-              className="absolute z-10 p-3 bg-slate-900/95 border border-white/10 rounded-xl shadow-2xl text-[10px] space-y-1.5 backdrop-blur-md"
+              className="absolute z-10 p-3 bg-slate-900/95 border border-white/10 rounded-xl shadow-2xl text-[10px] space-y-1.5 backdrop-blur-md pointer-events-none"
               style={{
-                left: `${Math.min(88, Math.max(12, (getX(hoveredIndex) * 100) / svgWidth))}%`,
+                left: `${Math.min(85, Math.max(15, (getX(hoveredIndex) * 100) / svgWidth))}%`,
                 top: '15px',
                 transform: 'translateX(-50%)',
                 minWidth: '220px',
