@@ -12,6 +12,7 @@ import { NewsTab } from '@/components/news-tab';
 import { AdminPanelTab } from '@/components/admin-panel-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
+import { CompoundingTab } from '@/components/compounding-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -503,6 +504,11 @@ export default function Dashboard() {
                 />
               </div>
             </>
+          ) : currentTab === 'compounding' ? (
+            <CompoundingTab
+              user={user}
+              onSignInClick={() => setIsAuthModalOpen(true)}
+            />
           ) : currentTab === 'portfolio' ? (
             <PortfolioTab
               user={user}
