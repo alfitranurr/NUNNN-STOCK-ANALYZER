@@ -10,6 +10,10 @@
   --color-bullish-neon: #05fa7b;
   --color-bearish-red: #ff4545;
   --color-bearish-crimson: #e13c3c;
+  
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-border-color: var(--border-color);
+  --color-input-bg: var(--input-bg);
 }
 
 :root {

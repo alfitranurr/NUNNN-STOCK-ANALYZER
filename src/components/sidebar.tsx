@@ -16,7 +16,8 @@ import {
   Lock,
   BookOpen,
   ShieldCheck,
-  Percent
+  Percent,
+  Coins
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,6 +42,7 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
     { id: 'news', label: 'Berita & Sentimen', icon: BookOpen, active: true },
     { id: 'avg-down', label: 'Kalkulator Avg Down', icon: Calculator, active: true },
     { id: 'compounding', label: 'Kalkulator Compounding', icon: Percent, active: true },
+    { id: 'ipo', label: 'Kalkulator E-IPO', icon: Coins, active: true },
     { id: 'analysis', label: 'Analisis Saham', icon: TrendingUp, active: true, isLocked: !user },
     { id: 'portfolio', label: 'Portofolio Saya', icon: Briefcase, active: true, isLocked: !user },
     ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheck, active: true }] : []),

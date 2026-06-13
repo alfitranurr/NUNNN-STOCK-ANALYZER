@@ -13,6 +13,7 @@ import { AdminPanelTab } from '@/components/admin-panel-tab';
 import { ConfirmModal } from '@/components/confirm-modal';
 import { calculateAvgDown, AvgDownInput, AvgDownResult } from '@/lib/calculator';
 import { CompoundingTab } from '@/components/compounding-tab';
+import { IpoTab } from '@/components/ipo-tab';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { Sparkles, BookOpen, AlertCircle, Info, Database, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -531,6 +532,21 @@ export default function Dashboard() {
               className="space-y-6 md:space-y-8"
             >
               <CompoundingTab
+                user={user}
+                onSignInClick={() => setIsAuthModalOpen(true)}
+              />
+            </motion.div>
+          </div>
+
+          {/* 3.5. E-IPO Tab */}
+          <div className={currentTab === 'ipo' ? 'block' : 'hidden'}>
+            <motion.div
+              initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
+              animate={currentTab === 'ipo' ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 15, filter: 'blur(4px)' }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-6 md:space-y-8"
+            >
+              <IpoTab
                 user={user}
                 onSignInClick={() => setIsAuthModalOpen(true)}
               />
