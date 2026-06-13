@@ -10,7 +10,8 @@ import {
   RefreshCw, 
   AlertTriangle, 
   CheckCircle, 
-  Clock
+  Clock,
+  Trash2
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { ConfirmModal } from '@/components/confirm-modal';
@@ -35,6 +36,7 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
   const [statusFilter, setStatusFilter] = React.useState<'all' | 'approved' | 'pending'>('all');
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
   const [confirmUser, setConfirmUser] = React.useState<UserApproval | null>(null);
+  const [deleteUser, setDeleteUser] = React.useState<UserApproval | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -72,6 +74,21 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
   React.useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Automatically clear notifications after 4 seconds
+  React.useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
+  React.useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const handleToggleApproval = (userToUpdate: UserApproval) => {
     if (userToUpdate.email.toLowerCase() === user?.email?.toLowerCase()) {
@@ -127,6 +144,38 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Gagal mengubah status persetujuan.');
+    }
+  };
+
+  const executeDeleteUser = async (userToDelete: UserApproval) => {
+    setError(null);
+    setSuccessMsg(null);
+    setDeleteUser(null);
+
+    try {
+      if (!isSupabaseConfigured) {
+        const storedUsers = localStorage.getItem('nunnn_stock_simulated_users');
+        let simUsers = storedUsers ? JSON.parse(storedUsers) : [];
+        
+        simUsers = simUsers.filter((u: any) => u.email.toLowerCase() !== userToDelete.email.toLowerCase());
+
+        localStorage.setItem('nunnn_stock_simulated_users', JSON.stringify(simUsers));
+        setUsers(prev => prev.filter(u => u.email.toLowerCase() !== userToDelete.email.toLowerCase()));
+        setSuccessMsg(`User ${userToDelete.email} berhasil dihapus.`);
+      } else {
+        const { error: dbError } = await supabase
+          .from('user_approvals')
+          .delete()
+          .eq('email', userToDelete.email);
+
+        if (dbError) throw dbError;
+        
+        setUsers(prev => prev.filter(u => u.email.toLowerCase() !== userToDelete.email.toLowerCase()));
+        setSuccessMsg(`User ${userToDelete.email} berhasil dihapus.`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Gagal menghapus user.');
     }
   };
 
@@ -324,19 +373,34 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
                         )}
                       </td>
                       <td className="px-5 py-4.5 text-right">
-                        <button
-                          onClick={() => handleToggleApproval(item)}
-                          disabled={isSelf}
-                          className={`px-3 py-1.5 rounded-xl font-bold text-[10px] uppercase select-none transition-all duration-300 border cursor-pointer ${
-                            isSelf
-                              ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed opacity-40'
-                              : item.approved
-                                ? 'bg-transparent border-rose-500/30 text-rose-400 hover:text-white hover:bg-rose-600 hover:border-rose-500 hover:shadow-[0_0_12px_rgba(244,63,94,0.3)]'
-                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-500/20 hover:from-emerald-500 hover:to-teal-500 text-white hover:shadow-[0_0_12px_rgba(16,185,129,0.4)] hover:scale-[1.02]'
-                          }`}
-                        >
-                          {item.approved ? 'Tangguhkan Akses' : 'Setujui Akses'}
-                        </button>
+                        <div className="flex items-center justify-end gap-2.5">
+                          <button
+                            onClick={() => handleToggleApproval(item)}
+                            disabled={isSelf}
+                            className={`px-3 py-1.5 rounded-xl font-bold text-[10px] uppercase select-none transition-all duration-300 border cursor-pointer ${
+                              isSelf
+                                ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed opacity-40'
+                                : item.approved
+                                  ? 'bg-transparent border-rose-500/30 text-rose-400 hover:text-white hover:bg-rose-600 hover:border-rose-500 hover:shadow-[0_0_12px_rgba(244,63,94,0.3)]'
+                                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-500/20 hover:from-emerald-500 hover:to-teal-500 text-white hover:shadow-[0_0_12px_rgba(16,185,129,0.4)] hover:scale-[1.02]'
+                            }`}
+                          >
+                            {item.approved ? 'Tangguhkan' : 'Setujui'}
+                          </button>
+                          
+                          <button
+                            onClick={() => setDeleteUser(item)}
+                            disabled={isSelf}
+                            className={`p-1.5 rounded-xl transition-all duration-300 border cursor-pointer ${
+                              isSelf
+                                ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed opacity-40'
+                                : 'bg-transparent border-rose-500/20 text-rose-500 hover:text-white hover:bg-rose-600 hover:border-rose-500'
+                            }`}
+                            title="Hapus Pengguna"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -359,6 +423,22 @@ export function AdminPanelTab({ user }: AdminPanelTabProps) {
         title="Tangguhkan Akses Pengguna"
         message={`Apakah Anda yakin ingin menangguhkan akses untuk user "${confirmUser?.email}"? Pengguna ini tidak akan dapat login lagi ke aplikasi.`}
         confirmText="Ya, Tangguhkan"
+        cancelText="Batal"
+        type="danger"
+      />
+
+      {/* Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={deleteUser !== null}
+        onClose={() => setDeleteUser(null)}
+        onConfirm={() => {
+          if (deleteUser) {
+            executeDeleteUser(deleteUser);
+          }
+        }}
+        title="Hapus Pengguna"
+        message={`Apakah Anda yakin ingin menghapus user "${deleteUser?.email}"? Seluruh data registrasi dan persetujuan pengguna ini akan dihapus secara permanen.`}
+        confirmText="Ya, Hapus"
         cancelText="Batal"
         type="danger"
       />

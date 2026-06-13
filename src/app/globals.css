@@ -14,6 +14,8 @@
   --color-sidebar-bg: var(--sidebar-bg);
   --color-border-color: var(--border-color);
   --color-input-bg: var(--input-bg);
+  --color-card-bg: var(--card-bg);
+  --color-glass-bg: var(--glass-bg);
 }
 
 :root {
