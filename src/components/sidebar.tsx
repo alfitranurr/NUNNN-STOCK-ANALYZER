@@ -187,36 +187,36 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
         animate={isCollapsed ? "collapsed" : "expanded"}
         variants={sidebarVariants}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-sidebar-bg border-r border-border-color py-6 px-4 z-30 group"
+        className="hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-sidebar-bg border-r border-border-color py-4 px-3 z-30 group"
       >
         {/* Sidebar Header */}
-        <div className={cn("flex items-center justify-between mb-8 transition-all duration-300", isCollapsed ? "px-2" : "px-3")}>
+        <div className={cn("flex items-center justify-between mb-5 transition-all duration-300", isCollapsed ? "px-1" : "px-2")}>
           {!isCollapsed ? (
-            <span className="font-extrabold text-xl text-brand-purple tracking-wider font-sans select-none">
+            <span className="font-extrabold text-lg text-brand-purple tracking-wider font-sans select-none">
               NUNNN STOCK
             </span>
           ) : (
-            <span className="font-black text-2xl text-brand-purple select-none">
+            <span className="font-black text-xl text-brand-purple select-none">
               N
             </span>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden group-hover:flex p-1.5 rounded-lg bg-input-bg hover:bg-glass-border border border-border-color text-foreground cursor-pointer transition-all duration-200 absolute -right-3.5 top-6 z-40 shadow-md"
+            className="hidden group-hover:flex p-1 rounded-lg bg-input-bg hover:bg-glass-border border border-border-color text-foreground cursor-pointer transition-all duration-200 absolute -right-3.5 top-4 z-40 shadow-md"
           >
             {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
         </div>
 
-        {/* Navigation Menu */}
-        <nav className="flex-1 space-y-2.5">
+        {/* Navigation Menu (Scrollable if screen is short) */}
+        <nav className="flex-1 overflow-y-auto space-y-1.5 pr-1.5 custom-scrollbar">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => item.active && setCurrentTab(item.id)}
               className={cn(
-                "w-full flex items-center gap-3.5 py-3 rounded-xl transition-all duration-300 border relative group/item cursor-pointer text-left",
-                isCollapsed ? "justify-center px-0" : "justify-between px-4.5",
+                "w-full flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 border relative group/item cursor-pointer text-left",
+                isCollapsed ? "justify-center px-0" : "justify-between px-3.5",
                 currentTab === item.id && item.active
                   ? "bg-brand-purple/10 border-brand-purple/20 text-brand-purple dark:text-brand-purple font-semibold"
                   : "bg-transparent border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-input-bg",
@@ -224,45 +224,45 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               )}
               title={isCollapsed ? item.label : undefined}
             >
-              <div className="flex items-center gap-3.5">
-                <item.icon className={cn("h-5.5 w-5.5 transition-transform duration-300 group-hover/item:scale-110", currentTab === item.id && "text-brand-purple")} />
-                {!isCollapsed && <span className="text-sm font-medium text-left">{item.label}</span>}
+              <div className="flex items-center gap-3">
+                <item.icon className={cn("h-5 w-5 transition-transform duration-300 group-hover/item:scale-110", currentTab === item.id && "text-brand-purple")} />
+                {!isCollapsed && <span className="text-[13px] font-semibold text-left whitespace-nowrap">{item.label}</span>}
               </div>
               {!isCollapsed && item.labelBadge && (
-                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-sm">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-sm">
                   {item.labelBadge}
                 </span>
               )}
               {!isCollapsed && item.isLocked && (
-                <Lock className="h-3.5 w-3.5 text-slate-500 dark:text-slate-600 shrink-0" />
+                <Lock className="h-3 w-3 text-slate-500 dark:text-slate-600 shrink-0" />
               )}
             </button>
           ))}
         </nav>
 
         {/* Bottom Section */}
-        <div className="mt-auto pt-4 border-t border-border-color space-y-4">
+        <div className="mt-auto pt-3 border-t border-border-color space-y-3 shrink-0">
           {/* Profile Footer */}
           {user ? (
-            <div className={cn("flex items-center justify-between gap-3 overflow-hidden", isCollapsed ? "justify-center" : "px-3")}>
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-10 h-10 rounded-full bg-brand-purple/10 flex items-center justify-center shrink-0 border border-brand-purple/20 shadow-md">
-                  <User className="h-5 w-5 text-brand-purple" />
+            <div className={cn("flex items-center justify-between gap-2.5 overflow-hidden", isCollapsed ? "justify-center" : "px-2.5")}>
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="w-8.5 h-8.5 rounded-full bg-brand-purple/10 flex items-center justify-center shrink-0 border border-brand-purple/20 shadow-md">
+                  <User className="h-4.5 w-4.5 text-brand-purple" />
                 </div>
                 {!isCollapsed && (
                   <div className="overflow-hidden">
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">User</p>
-                    <p className="text-sm font-semibold truncate text-slate-700 dark:text-slate-200">{user.email}</p>
+                    <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">User</p>
+                    <p className="text-xs font-semibold truncate text-slate-700 dark:text-slate-200">{user.email}</p>
                   </div>
                 )}
               </div>
               {!isCollapsed && (
                 <button 
                   onClick={onSignOut} 
-                  className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl cursor-pointer transition-all duration-300"
+                  className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl cursor-pointer transition-all duration-300"
                   title="Sign Out"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4.5 w-4.5" />
                 </button>
               )}
             </div>
@@ -270,12 +270,12 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
             <button
               onClick={onSignInClick}
               className={cn(
-                "flex items-center justify-center gap-2 py-3 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-sm transition-all duration-300 shadow-md cursor-pointer",
-                isCollapsed ? "w-11 h-11 px-0" : "w-full px-4"
+                "flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white font-semibold text-xs transition-all duration-300 shadow-md cursor-pointer",
+                isCollapsed ? "w-9 h-9 px-0" : "w-full px-3.5"
               )}
               title="Masuk ke Akun"
             >
-              <User className="h-5 w-5" />
+              <User className="h-4.5 w-4.5" />
               {!isCollapsed && <span>Masuk</span>}
             </button>
           )}
