@@ -30,9 +30,10 @@ interface SidebarProps {
   onSignInClick: () => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  onLogoClick?: () => void;
 }
 
-export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInClick, isCollapsed, setIsCollapsed }: SidebarProps) {
+export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInClick, isCollapsed, setIsCollapsed, onLogoClick }: SidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
 
   const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@nunnnstock.com').toLowerCase();
@@ -59,11 +60,14 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
     <>
       {/* Mobile Header (Fixed Top) */}
       <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b border-border-color flex items-center justify-between px-4 z-40">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={onLogoClick}
+          className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
+        >
           <span className="font-extrabold text-xl text-brand-purple tracking-wider font-sans">
             NUNNN STOCK
           </span>
-        </div>
+        </button>
         <button 
           onClick={() => setIsMobileOpen(true)}
           className="p-2 rounded-lg bg-input-bg border border-border-color text-foreground cursor-pointer"
@@ -93,9 +97,17 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
               className="md:hidden fixed top-0 bottom-0 left-0 w-[280px] bg-sidebar-bg border-r border-border-color z-50 flex flex-col p-6 text-white"
             >
               <div className="flex items-center justify-between mb-8">
-                <span className="font-extrabold text-2xl text-brand-purple tracking-wider">
-                  NUNNN STOCK
-                </span>
+                <button
+                  onClick={() => {
+                    onLogoClick?.();
+                    setIsMobileOpen(false);
+                  }}
+                  className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
+                >
+                  <span className="font-extrabold text-2xl text-brand-purple tracking-wider font-sans">
+                    NUNNN STOCK
+                  </span>
+                </button>
                 <button 
                   onClick={() => setIsMobileOpen(false)}
                   className="p-1 rounded-lg hover:bg-input-bg text-white cursor-pointer"
@@ -191,15 +203,20 @@ export function Sidebar({ currentTab, setCurrentTab, user, onSignOut, onSignInCl
       >
         {/* Sidebar Header */}
         <div className={cn("flex items-center justify-between mb-5 transition-all duration-300", isCollapsed ? "px-1" : "px-2")}>
-          {!isCollapsed ? (
-            <span className="font-extrabold text-lg text-brand-purple tracking-wider font-sans select-none">
-              NUNNN STOCK
-            </span>
-          ) : (
-            <span className="font-black text-xl text-brand-purple select-none">
-              N
-            </span>
-          )}
+          <button
+            onClick={onLogoClick}
+            className="flex items-center gap-2 cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all text-left bg-transparent border-0 p-0"
+          >
+            {!isCollapsed ? (
+              <span className="font-extrabold text-lg text-brand-purple tracking-wider font-sans select-none">
+                NUNNN STOCK
+              </span>
+            ) : (
+              <span className="font-black text-xl text-brand-purple select-none">
+                N
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="hidden group-hover:flex p-1 rounded-lg bg-input-bg hover:bg-glass-border border border-border-color text-foreground cursor-pointer transition-all duration-200 absolute -right-3.5 top-4 z-40 shadow-md"
