@@ -641,13 +641,22 @@ export default function Dashboard() {
                 transition={{ delay: 0.3, duration: 0.5 }}
                 className="shrink-0"
               >
-                <button
+                <motion.button
+                  whileHover="hover"
                   onClick={handleEnterDashboard}
                   className="group relative flex items-center gap-2 md:gap-3 bg-[#00b15b] hover:bg-[#05fa7b] text-white hover:text-black font-extrabold text-[11px] md:text-xs py-2.5 px-5 md:py-3.5 md:px-7 rounded-xl md:rounded-2xl shadow-xl shadow-[#00b15b]/25 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <span>Mulai Analisis Sekarang</span>
-                  <ArrowRight className="h-3.5 w-3.5 md:h-4 md:w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </button>
+                  <motion.span
+                    variants={{
+                      hover: { x: 6 }
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="inline-block"
+                  >
+                    <ArrowRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                  </motion.span>
+                </motion.button>
               </motion.div>
 
               {/* Features Preview Cards Grid */}
@@ -895,7 +904,7 @@ export default function Dashboard() {
           </div>
 
           {/* Footer branding */}
-          <div className="text-center text-[10px] text-slate-500 pt-6 pb-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5">
+          <div className="text-center text-[10px] text-slate-500 pt-6 pb-2 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center gap-1.5 no-print">
             <span>© 2026 Al Fitra Nur Ramadhani. All rights reserved.</span>
           </div>
 
