@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cleanCompanyName } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -32,10 +33,7 @@ export async function GET(request: NextRequest) {
         })
         .map((quote: any) => {
           const cleanSymbol = quote.symbol.replace(/\.JK$/i, '').toUpperCase();
-          let name = quote.longname || quote.shortname || cleanSymbol;
-          name = name.replace(/\.JK/gi, '');
-          name = name.replace(/^(PT\.?\s+)/i, ''); // Hapus awalan PT
-          name = name.replace(/Persero/gi, '').replace(/  +/g, ' ').trim();
+          const name = cleanCompanyName(quote.longname || quote.shortname || cleanSymbol);
           
           return {
             symbol: cleanSymbol,
@@ -76,16 +74,9 @@ export async function GET(request: NextRequest) {
     const meta = data.chart?.result?.[0]?.meta;
 
     if (meta) {
-      let name = meta.longName || meta.shortName || '';
+      const name = cleanCompanyName(meta.longName || meta.shortName || '');
       const price = meta.regularMarketPrice || null;
       
-      // Rapikan nama perusahaan
-      if (name) {
-        name = name.replace(/\.JK/gi, '');
-        name = name.replace(/^(PT\.?\s+)/i, ''); // Hapus awalan PT
-        name = name.replace(/Persero/gi, '').replace(/  +/g, ' ').trim();
-      }
-
       return NextResponse.json({ symbol, name, price });
     }
 

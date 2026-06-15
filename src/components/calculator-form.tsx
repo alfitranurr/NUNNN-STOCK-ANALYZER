@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Sparkles, Info, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { AvgDownInput, PurchaseTranche } from '@/lib/calculator';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cleanCompanyName } from '@/lib/utils';
 
 interface CalculatorFormProps {
   onCalculate: (values: AvgDownInput) => void;
@@ -118,6 +119,7 @@ const TICKER_DATABASE: Record<string, string> = {
   'BELI': 'Global Digital Niaga Tbk (Blibli)',
   'EMTKB': 'Elang Mahkota Teknologi Tbk',
   'SCMA': 'Surya Citra Media Tbk',
+  'JELI': 'PT Niramas Utama Tbk (INACO)',
   
   // Transportasi & Logistik
   'BIRD': 'Blue Bird Tbk',
@@ -151,6 +153,41 @@ const BROKER_PRESETS = [
   { id: 'custom', name: 'Custom Fee', buy: 0.20, sell: 0.30 }
 ];
 
+function FormEmitenLogo({ symbol }: { symbol: string }) {
+  const [hasError, setHasError] = React.useState(false);
+  
+  React.useEffect(() => {
+    setHasError(false);
+  }, [symbol]);
+
+  const cleanSymbol = symbol.toUpperCase().trim();
+
+  if (cleanSymbol.length < 3) {
+    return (
+      <div className="w-10 h-10 md:w-9 md:h-9 rounded-xl bg-slate-100/5 border border-white/10 flex items-center justify-center shrink-0">
+        <span className="font-extrabold text-[9px] text-slate-500">IDX</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-10 h-10 md:w-9 md:h-9 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+      {!hasError ? (
+        <img
+          src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
+          alt={cleanSymbol}
+          className="w-7 h-7 md:w-6 md:h-6 object-contain"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <span className="font-black text-[10px] md:text-[11px] text-brand-purple">
+          {cleanSymbol.slice(0, 2)}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user, initialValues }: CalculatorFormProps) {
   const [ticker, setTicker] = React.useState('ANTM');
   const [companyName, setCompanyName] = React.useState('Aneka Tambang Tbk');
@@ -176,7 +213,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   React.useEffect(() => {
     if (initialValues) {
       setTicker(initialValues.ticker);
-      setCompanyName(initialValues.company_name || TICKER_DATABASE[initialValues.ticker] || '');
+      setCompanyName(cleanCompanyName(initialValues.company_name) || TICKER_DATABASE[initialValues.ticker] || '');
       setLotAwal(formatNumberForInput(initialValues.lot_awal));
       setAvgPriceAwal(formatNumberForInput(initialValues.avg_price_awal));
       setCurrentPrice(formatNumberForInput(initialValues.current_price));
@@ -366,10 +403,13 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
       <form onSubmit={handleSaveClick} className="flex flex-col xl:flex-row xl:items-end justify-between gap-5 w-full">
         
         {/* Ticker & Nama Emiten (2 Kotak Berdampingan) */}
-        <div className="flex flex-col gap-1.5 flex-1 min-w-[280px] relative">
+        <div className="flex flex-col gap-1.5 flex-1 min-w-[320px] relative">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Saham & Emiten</label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             
+            {/* Logo Emiten */}
+            <FormEmitenLogo symbol={ticker} />
+
             {/* Kotak Ticker */}
             <div className="w-1/3 relative">
               <input

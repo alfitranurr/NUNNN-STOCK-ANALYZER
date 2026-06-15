@@ -5,6 +5,7 @@ import { TrendingDown, ArrowRight, ShieldCheck, CheckCircle2, TrendingUp, Sparkl
 import { AvgDownResult } from '@/lib/calculator';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { cleanCompanyName } from '@/lib/utils';
 
 interface ResultsDisplayProps {
   result: AvgDownResult | null;
@@ -12,8 +13,38 @@ interface ResultsDisplayProps {
   companyName?: string;
 }
 
+function ResultsEmitenLogo({ symbol }: { symbol: string }) {
+  const [hasError, setHasError] = React.useState(false);
+  
+  React.useEffect(() => {
+    setHasError(false);
+  }, [symbol]);
+
+  const cleanSymbol = symbol.toUpperCase().trim();
+
+  if (cleanSymbol.length < 3) return null;
+
+  return (
+    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+      {!hasError ? (
+        <img
+          src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
+          alt={cleanSymbol}
+          className="w-8.5 h-8.5 object-contain"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <span className="font-black text-[12px] text-brand-purple">
+          {cleanSymbol.slice(0, 2)}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayProps) {
   const [hasConfettiFired, setHasConfettiFired] = React.useState(false);
+  const cleanName = cleanCompanyName(companyName);
 
   // Format ke Rupiah
   const formatIDR = (value: number) => {
@@ -27,8 +58,9 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
   // Dynamic font size based on company name length
   const getCompanyFontSize = (name?: string) => {
     if (!name) return 'text-lg';
-    if (name.length > 25) return 'text-sm sm:text-base';
-    if (name.length > 18) return 'text-base sm:text-lg';
+    const cleanN = cleanCompanyName(name);
+    if (cleanN.length > 25) return 'text-sm sm:text-base';
+    if (cleanN.length > 18) return 'text-base sm:text-lg';
     return 'text-lg';
   };
 
@@ -78,15 +110,18 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="glass-card p-5 border-brand-purple/20 bg-card-bg relative overflow-hidden flex flex-col justify-center min-h-[92px]"
+          className="glass-card p-5 border-brand-purple/20 bg-card-bg relative overflow-hidden flex items-center gap-4 min-h-[92px]"
         >
           <div className="absolute top-0 left-0 w-32 h-32 bg-brand-purple/2 rounded-full blur-3xl pointer-events-none" />
-          <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
-            Ticker
-          </span>
-          <h2 className="text-3xl font-extrabold text-white tracking-widest mt-1">
-            {ticker}
-          </h2>
+          <ResultsEmitenLogo symbol={ticker} />
+          <div className="flex flex-col justify-center">
+            <span className="text-[9px] font-bold text-brand-purple uppercase tracking-widest block">
+              Ticker
+            </span>
+            <h2 className="text-3.5xl font-black text-white tracking-wider leading-none">
+              {ticker}
+            </h2>
+          </div>
         </motion.div>
 
         {/* Card 2: Nama Emiten */}
@@ -100,8 +135,8 @@ export function ResultsDisplay({ result, ticker, companyName }: ResultsDisplayPr
           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
             Nama Emiten
           </span>
-          <h3 className={`${getCompanyFontSize(companyName)} font-bold text-brand-purple dark:text-brand-purple mt-1 break-words leading-tight`} title={companyName}>
-            {companyName || '-'}
+          <h3 className={`${getCompanyFontSize(cleanName)} font-bold text-brand-purple dark:text-brand-purple mt-1 break-words leading-tight`} title={cleanName}>
+            {cleanName || '-'}
           </h3>
         </motion.div>
       </div>

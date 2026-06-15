@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Search, TrendingUp, TrendingDown, BookOpen, Clock, AlertTriangle, RefreshCw, BarChart2, DollarSign, ShieldAlert, Sparkles, Building, Activity, ChevronUp, ChevronDown, Layers, Compass } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { cleanCompanyName } from '@/lib/utils';
 
 // Popular BEI Tickers for suggestions
 const POPULAR_TICKERS = [
@@ -685,7 +686,7 @@ export function AnalysisTab({ user, onSignInClick, initialTicker }: AnalysisTabP
                     className="w-full text-left px-4 py-3 hover:bg-brand-purple/10 transition-colors flex items-center justify-between"
                   >
                     <span className="font-bold text-white text-sm">{item.symbol}</span>
-                    <span className="text-xs text-slate-400 truncate max-w-[180px]">{item.name}</span>
+                    <span className="text-xs text-slate-400 truncate max-w-[180px]">{cleanCompanyName(item.name)}</span>
                   </button>
                 ))}
                 

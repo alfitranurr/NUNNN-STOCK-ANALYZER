@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Trash2, ExternalLink, Calendar, Calculator, Info } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { cleanCompanyName } from '@/lib/utils';
 
 export interface SavedPlan {
   id: string;
@@ -25,6 +26,35 @@ interface HistoryTableProps {
   onDeletePlan: (id: string) => void;
   onLoadPlan: (plan: SavedPlan) => void;
   user: any;
+}
+
+function HistoryEmitenLogo({ symbol }: { symbol: string }) {
+  const [hasError, setHasError] = React.useState(false);
+  
+  React.useEffect(() => {
+    setHasError(false);
+  }, [symbol]);
+
+  const cleanSymbol = symbol.toUpperCase().trim();
+
+  if (cleanSymbol.length < 3) return null;
+
+  return (
+    <div className="w-8.5 h-8.5 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+      {!hasError ? (
+        <img
+          src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
+          alt={cleanSymbol}
+          className="w-6 h-6 object-contain"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <span className="font-black text-[9.5px] text-brand-purple">
+          {cleanSymbol.slice(0, 2)}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryTableProps) {
@@ -105,13 +135,16 @@ export function HistoryTable({ plans, onDeletePlan, onLoadPlan, user }: HistoryT
                       <tr key={plan.id} className="hover:bg-slate-100/30 dark:hover:bg-white/3 transition-colors">
                         {/* Saham */}
                         <td className="px-4 py-4.5 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider">
-                              {plan.ticker}
-                            </span>
-                            <span className="text-[10px] text-slate-400 truncate max-w-[130px]" title={plan.company_name}>
-                              {plan.company_name || '-'}
-                            </span>
+                          <div className="flex items-center gap-2.5">
+                            <HistoryEmitenLogo symbol={plan.ticker} />
+                            <div className="flex flex-col">
+                              <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider leading-tight">
+                                {plan.ticker}
+                              </span>
+                              <span className="text-[10px] text-slate-400 truncate max-w-[130px] leading-tight" title={cleanCompanyName(plan.company_name)}>
+                                {cleanCompanyName(plan.company_name) || '-'}
+                              </span>
+                            </div>
                           </div>
                         </td>
                         

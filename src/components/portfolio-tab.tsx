@@ -23,6 +23,7 @@ import {
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConfirmModal } from './confirm-modal';
+import { cleanCompanyName } from '@/lib/utils';
 
 interface Holding {
   id: string;
@@ -37,6 +38,35 @@ interface PortfolioTabProps {
   onSignInClick: () => void;
   onAvgDownClick: (ticker: string, lot: number, avgPrice: number) => void;
   onAnalyzeClick: (ticker: string) => void;
+}
+
+function PortfolioEmitenLogo({ symbol }: { symbol: string }) {
+  const [hasError, setHasError] = React.useState(false);
+  
+  React.useEffect(() => {
+    setHasError(false);
+  }, [symbol]);
+
+  const cleanSymbol = symbol.toUpperCase().trim();
+
+  if (cleanSymbol.length < 3) return null;
+
+  return (
+    <div className="w-8.5 h-8.5 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+      {!hasError ? (
+        <img
+          src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
+          alt={cleanSymbol}
+          className="w-6 h-6 object-contain"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <span className="font-black text-[9.5px] text-brand-purple">
+          {cleanSymbol.slice(0, 2)}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeClick }: PortfolioTabProps) {
@@ -255,7 +285,7 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
       const newHolding: Holding = {
         id: crypto.randomUUID(),
         ticker: tickerUpper,
-        company_name: formCompanyName || `${tickerUpper} Emiten`,
+        company_name: cleanCompanyName(formCompanyName || `${tickerUpper} Emiten`),
         lot: parsedLot,
         avg_price: parsedPrice
       };
@@ -499,13 +529,16 @@ export function PortfolioTab({ user, onSignInClick, onAvgDownClick, onAnalyzeCli
                         <tr key={h.id} className="hover:bg-white/3 transition-colors">
                           {/* Saham */}
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="flex flex-col">
-                              <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider">
-                                {tickerUpper}
-                              </span>
-                              <span className="text-[9px] text-slate-400 truncate max-w-[120px]" title={h.company_name}>
-                                {h.company_name || '-'}
-                              </span>
+                            <div className="flex items-center gap-2.5">
+                              <PortfolioEmitenLogo symbol={h.ticker} />
+                              <div className="flex flex-col">
+                                <span className="font-extrabold text-sm text-brand-purple dark:text-brand-purple tracking-wider leading-tight">
+                                  {tickerUpper}
+                                </span>
+                                <span className="text-[9px] text-slate-400 truncate max-w-[120px] leading-tight" title={cleanCompanyName(h.company_name)}>
+                                  {cleanCompanyName(h.company_name) || '-'}
+                                </span>
+                              </div>
                             </div>
                           </td>
 

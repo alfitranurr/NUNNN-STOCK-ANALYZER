@@ -20,6 +20,7 @@ import {
 import { calculateEIpoAllotment, getGolongan, getInitialAllocationConfig, EIpoInput, EIpoResult } from '@/lib/e-ipo';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cleanCompanyName } from '@/lib/utils';
 
 interface IpoTabProps {
   user: any;
@@ -143,12 +144,42 @@ const TICKER_DATABASE: Record<string, string> = {
   'BIRD': 'Blue Bird Tbk',
   'SMDR': 'Samudera Indonesia Tbk',
   'TMAS': 'Temas Tbk',
+  'JELI': 'PT Niramas Utama Tbk (INACO)',
 };
+
+function IpoEmitenLogo({ symbol }: { symbol: string }) {
+  const [hasError, setHasError] = React.useState(false);
+  
+  React.useEffect(() => {
+    setHasError(false);
+  }, [symbol]);
+
+  const cleanSymbol = symbol.toUpperCase().trim();
+
+  if (cleanSymbol.length < 3) return null;
+
+  return (
+    <div className="w-8.5 h-8.5 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+      {!hasError ? (
+        <img
+          src={`https://assets.stockbit.com/logos/companies/${cleanSymbol}.png`}
+          alt={cleanSymbol}
+          className="w-6 h-6 object-contain"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <span className="font-black text-[9.5px] text-brand-purple">
+          {cleanSymbol.slice(0, 2)}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   // Input States
   const [ticker, setTicker] = React.useState('JELI');
-  const [companyName, setCompanyName] = React.useState('PT E-IPO Jeli Indonesia');
+  const [companyName, setCompanyName] = React.useState('PT Niramas Utama Tbk (INACO)');
   const [priceStr, setPriceStr] = React.useState('100');
   const [totalLotsStr, setTotalLotsStr] = React.useState('3,500,000');
   const [oversubscriptionStr, setOversubscriptionStr] = React.useState('25');
@@ -167,7 +198,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
       if (res.ok) {
         const data = await res.json();
         if (data.name) {
-          setCompanyName(data.name);
+          setCompanyName(cleanCompanyName(data.name));
         }
         if (data.price !== undefined && data.price !== null && data.price > 0) {
           setPriceStr(formatNumberForInput(data.price));
@@ -377,7 +408,7 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
   // Load Parameters of Saved Plan
   const handleLoadPlan = (plan: any) => {
     setTicker(plan.ticker);
-    setCompanyName(plan.company_name);
+    setCompanyName(cleanCompanyName(plan.company_name));
     setPriceStr(formatNumberForInput(plan.price));
     setTotalLotsStr(formatNumberForInput(plan.total_lots));
     setOversubscriptionStr(plan.oversubscription.toString());
@@ -552,14 +583,17 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
           {/* Ticker Saham */}
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">1. Ticker IPO</label>
-            <input
-              type="text"
-              maxLength={6}
-              value={ticker}
-              onChange={(e) => setTicker(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-              className="w-full glass-input px-3.5 py-2.5 text-xs font-extrabold text-white bg-black/25 focus:bg-background uppercase text-center"
-              placeholder="JELI"
-            />
+            <div className="flex gap-2 items-center">
+              <IpoEmitenLogo symbol={ticker} />
+              <input
+                type="text"
+                maxLength={6}
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                className="w-full glass-input px-3.5 py-2.5 text-xs font-extrabold text-white bg-black/25 focus:bg-background uppercase text-center"
+                placeholder="JELI"
+              />
+            </div>
           </div>
 
           {/* Nama Emiten */}
@@ -989,8 +1023,15 @@ export function IpoTab({ user, onSignInClick }: IpoTabProps) {
                 {savedPlans.map((plan) => (
                   <tr key={plan.id} className="hover:bg-white/5">
                     <td className="p-3">
-                      <div className="font-extrabold text-white">{plan.ticker}</div>
-                      <div className="text-[10px] text-slate-400 truncate max-w-[150px]">{plan.company_name}</div>
+                      <div className="flex items-center gap-2.5">
+                        <IpoEmitenLogo symbol={plan.ticker} />
+                        <div className="flex flex-col">
+                          <div className="font-extrabold text-white leading-tight">{plan.ticker}</div>
+                          <div className="text-[10px] text-slate-400 truncate max-w-[150px] leading-tight">
+                            {cleanCompanyName(plan.company_name)}
+                          </div>
+                        </div>
+                      </div>
                     </td>
                     <td className="p-3 font-semibold text-slate-200">{formatIDR(plan.price)}</td>
                     <td className="p-3 text-slate-300">{formatRawNumber(plan.total_lots * 100)} Lembar</td>
