@@ -66,12 +66,72 @@ export default function RootLayout({
                   }
                 }
 
+                function clearSupabaseKeys() {
+                  try {
+                    var keysToRemove = [];
+                    for (var i = 0; i < localStorage.length; i++) {
+                      var key = localStorage.key(i);
+                      if (key && (key.indexOf('sb-') === 0 || key.indexOf('auth-token') !== -1 || key.indexOf('supabase.auth.token') !== -1)) {
+                        keysToRemove.push(key);
+                      }
+                    }
+                    for (var j = 0; j < keysToRemove.length; j++) {
+                      localStorage.removeItem(keysToRemove[j]);
+                    }
+                  } catch (e) {
+                    console.error('Failed to clear keys:', e);
+                  }
+                }
+
                 window.addEventListener('error', function(event) {
-                  showError(event.message, event.error ? event.error.stack : '');
+                  var msg = event.message || '';
+                  var stack = event.error ? event.error.stack : '';
+                  var lowerMsg = msg.toLowerCase();
+                  var lowerStack = (stack || '').toLowerCase();
+
+                  if (lowerMsg.indexOf('invalid refresh token') !== -1 || 
+                      lowerMsg.indexOf('refresh_token') !== -1 || 
+                      lowerMsg.indexOf('refresh token not found') !== -1 ||
+                      lowerStack.indexOf('invalid refresh token') !== -1 ||
+                      lowerStack.indexOf('refresh token not found') !== -1) {
+                    clearSupabaseKeys();
+                    return;
+                  }
+
+                  if (lowerMsg.indexOf('react error #418') !== -1 || 
+                      lowerMsg.indexOf('react error #423') !== -1 || 
+                      lowerMsg.indexOf('hydration') !== -1) {
+                    return;
+                  }
+
+                  showError(msg, stack);
                 });
 
                 window.addEventListener('unhandledrejection', function(event) {
-                  showError(event.reason ? (event.reason.message || String(event.reason)) : 'Unhandled rejection', event.reason ? event.reason.stack : '');
+                  var reason = event.reason;
+                  var msg = reason ? (reason.message || String(reason)) : 'Unhandled rejection';
+                  var stack = reason ? (reason.stack || '') : '';
+                  var lowerMsg = msg.toLowerCase();
+                  var lowerStack = stack.toLowerCase();
+
+                  if (lowerMsg.indexOf('invalid refresh token') !== -1 || 
+                      lowerMsg.indexOf('refresh_token') !== -1 || 
+                      lowerMsg.indexOf('refresh token not found') !== -1 ||
+                      lowerStack.indexOf('invalid refresh token') !== -1 ||
+                      lowerStack.indexOf('refresh token not found') !== -1 ||
+                      (reason && (reason.name === 'AuthApiError' || reason.status === 400))) {
+                    clearSupabaseKeys();
+                    try { event.preventDefault(); } catch (e) {}
+                    return;
+                  }
+
+                  if (lowerMsg.indexOf('react error #418') !== -1 || 
+                      lowerMsg.indexOf('react error #423') !== -1 || 
+                      lowerMsg.indexOf('hydration') !== -1) {
+                    return;
+                  }
+
+                  showError(msg, stack);
                 });
 
                 // 2. Polyfill crypto.randomUUID

@@ -142,12 +142,70 @@ if (typeof window !== 'undefined') {
     }
   };
 
+  const clearSupabaseKeys = () => {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('auth-token') || key.includes('supabase.auth.token'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+      console.error('Failed to clear keys:', e);
+    }
+  };
+
   window.addEventListener('error', (event) => {
-    showError(event.message, event.error?.stack);
+    const msg = event.message || '';
+    const stack = event.error?.stack || '';
+    const lowerMsg = msg.toLowerCase();
+    const lowerStack = stack.toLowerCase();
+
+    if (lowerMsg.includes('invalid refresh token') || 
+        lowerMsg.includes('refresh_token') || 
+        lowerMsg.includes('refresh token not found') ||
+        lowerStack.includes('invalid refresh token') ||
+        lowerStack.includes('refresh token not found')) {
+      clearSupabaseKeys();
+      return;
+    }
+
+    if (lowerMsg.includes('react error #418') || 
+        lowerMsg.includes('react error #423') || 
+        lowerMsg.includes('hydration')) {
+      return;
+    }
+
+    showError(msg, stack);
   });
 
   window.addEventListener('unhandledrejection', (event) => {
-    showError(event.reason?.message || String(event.reason), event.reason?.stack);
+    const reason = event.reason;
+    const msg = reason?.message || String(reason || '');
+    const stack = reason?.stack || '';
+    const lowerMsg = msg.toLowerCase();
+    const lowerStack = stack.toLowerCase();
+
+    if (lowerMsg.includes('invalid refresh token') || 
+        lowerMsg.includes('refresh_token') || 
+        lowerMsg.includes('refresh token not found') ||
+        lowerStack.includes('invalid refresh token') ||
+        lowerStack.includes('refresh token not found') ||
+        (reason && (reason.name === 'AuthApiError' || reason.status === 400))) {
+      clearSupabaseKeys();
+      try { event.preventDefault(); } catch (e) {}
+      return;
+    }
+
+    if (lowerMsg.includes('react error #418') || 
+        lowerMsg.includes('react error #423') || 
+        lowerMsg.includes('hydration')) {
+      return;
+    }
+
+    showError(msg, stack);
   });
 
   console.log('[Debug] Error Logger Overlay initialized.');
