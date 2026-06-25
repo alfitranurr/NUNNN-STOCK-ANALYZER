@@ -246,11 +246,15 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   // Custom configurations and loading states
   const [avgPriceAwalIncludesFee, setAvgPriceAwalIncludesFee] = React.useState(true);
   const [isFetchingTicker, setIsFetchingTicker] = React.useState(false);
+  const [fetchingTrancheId, setFetchingTrancheId] = React.useState<string | null>(null);
+  
+  const isLoadedPlanRef = React.useRef(false);
+  const prevCurrentPriceRef = React.useRef(currentPrice);
 
 
-  // Sync state if initialValues changes
   React.useEffect(() => {
     if (initialValues) {
+      isLoadedPlanRef.current = true;
       const timer = setTimeout(() => {
         setTicker(initialValues.ticker);
         setCompanyName(cleanCompanyName(initialValues.company_name) || TICKER_DATABASE[initialValues.ticker] || '');
@@ -285,6 +289,11 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         } else {
           setBrokerPreset('custom');
         }
+        
+        // Reset plan loaded flag after rendering
+        setTimeout(() => {
+          isLoadedPlanRef.current = false;
+        }, 500);
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -334,6 +343,58 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
     }
   }, [ticker, fetchRemoteTicker]);
 
+  const handleRefreshTranchePrice = async (trancheId: string) => {
+    const val = ticker.toUpperCase().trim();
+    if (val.length >= 4) {
+      setFetchingTrancheId(trancheId);
+      try {
+        const res = await fetch(`/api/ticker?symbol=${val}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.price !== undefined && data.price !== null) {
+            const formattedPrice = formatNumberForInput(data.price);
+            setCurrentPrice(formattedPrice);
+            
+            // Set the price of this specific tranche
+            setTranches(prev => prev.map(t => 
+              t.id === trancheId ? { ...t, price: formattedPrice } : t
+            ));
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Error refreshing tranche price:', err);
+      } finally {
+        setFetchingTrancheId(null);
+      }
+    }
+    
+    // Fallback: copy currentPrice if api fetch fails or symbol is invalid
+    if (currentPrice) {
+      setTranches(prev => prev.map(t => 
+        t.id === trancheId ? { ...t, price: currentPrice } : t
+      ));
+    }
+  };
+
+  // Automatically sync tranche prices to currentPrice if they are not customized
+  React.useEffect(() => {
+    const oldPrice = prevCurrentPriceRef.current;
+    const newPrice = currentPrice;
+    prevCurrentPriceRef.current = newPrice;
+    
+    if (isLoadedPlanRef.current) return;
+    
+    if (newPrice !== oldPrice) {
+      setTranches(prev => prev.map(t => {
+        if (!t.price || t.price === oldPrice || oldPrice === '' || t.price === '2,800') {
+          return { ...t, price: newPrice };
+        }
+        return t;
+      }));
+    }
+  }, [currentPrice]);
+
   // Trigger calculation on input changes
   React.useEffect(() => {
     const parsedTranches = tranches.map(t => ({
@@ -375,7 +436,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
   const handleAddTranche = () => {
     setTranches([
       ...tranches,
-      { id: crypto.randomUUID(), lot: '', price: '' }
+      { id: crypto.randomUUID(), lot: '', price: currentPrice || '' }
     ]);
   };
 
@@ -563,7 +624,16 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
         <div className="flex flex-col gap-1.5 flex-1 min-w-0 md:min-w-[280px] w-full">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{t('calculator.step3')}</label>
           
-          <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto pr-1">
+          {tranches.length > 0 && (
+            <div className="flex items-center gap-2 px-1 text-[9px] font-extrabold uppercase tracking-wider text-slate-500/80">
+              <span className="w-11 shrink-0">{t('calculator.tahap')}</span>
+              <span className="flex-1 text-center">{t('calculator.trancheLot')}</span>
+              <span className="flex-2 text-center pr-6">{t('calculator.tranchePrice')}</span>
+              {tranches.length > 1 && <span className="w-8 shrink-0" />}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
             <AnimatePresence initial={false}>
               {tranches.map((tranche, index) => (
                 <motion.div
@@ -572,7 +642,7 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                   animate={{ opacity: 1, height: 'auto', y: 0 }}
                   exit={{ opacity: 0, height: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2 overflow-hidden py-0.5"
+                  className="flex items-center gap-2 overflow-hidden py-0.5 shrink-0"
                 >
                   <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 w-11 shrink-0">
                     {t('calculator.tahap')} {index + 1}
@@ -584,22 +654,31 @@ export function CalculatorForm({ onCalculate, onSavePlan, isSaving = false, user
                       value={tranche.lot}
                       onChange={(e) => handleTrancheChange(tranche.id, 'lot', e.target.value)}
                       onBlur={() => handleTrancheBlur(tranche.id, 'lot')}
-                      placeholder="Lot"
+                      placeholder={t('calculator.trancheLot')}
                       className="w-full glass-input px-1 py-1.5 text-xs text-center font-semibold border-brand-purple/10 focus:border-brand-purple bg-black/20"
                       required
                     />
                   </div>
 
-                  <div className="flex-2 min-w-[90px]">
+                  <div className="flex-2 min-w-[90px] relative">
                     <input
                       type="text"
                       value={tranche.price}
                       onChange={(e) => handleTrancheChange(tranche.id, 'price', e.target.value)}
                       onBlur={() => handleTrancheBlur(tranche.id, 'price')}
-                      placeholder="Harga Beli"
-                      className="w-full glass-input px-1.5 py-1.5 text-xs text-center font-semibold border-brand-purple/10 focus:border-brand-purple bg-black/20"
+                      placeholder={t('calculator.tranchePrice')}
+                      className="w-full glass-input pl-1.5 pr-6 py-1.5 text-xs text-center font-semibold border-brand-purple/10 focus:border-brand-purple bg-black/20"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => handleRefreshTranchePrice(tranche.id)}
+                      disabled={fetchingTrancheId !== null || isFetchingTicker || ticker.toUpperCase().trim().length < 4}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-brand-purple hover:bg-slate-100/10 dark:hover:bg-white/5 rounded-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Set / Refresh Harga saat ini"
+                    >
+                      <RefreshCw className={`h-2.5 w-2.5 ${(fetchingTrancheId === tranche.id || isFetchingTicker) ? 'animate-spin' : ''}`} />
+                    </button>
                   </div>
 
                   {tranches.length > 1 && (
