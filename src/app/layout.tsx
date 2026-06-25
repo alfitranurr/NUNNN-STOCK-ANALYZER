@@ -31,6 +31,72 @@ export default function RootLayout({
               (function() {
                 if (typeof window === 'undefined') return;
 
+                function clearSupabaseKeys() {
+                  try {
+                    var keysToRemove = [];
+                    for (var i = 0; i < localStorage.length; i++) {
+                      var key = localStorage.key(i);
+                      if (key && (key.indexOf('sb-') === 0 || key.indexOf('auth-token') !== -1 || key.indexOf('supabase.auth.token') !== -1)) {
+                        keysToRemove.push(key);
+                      }
+                    }
+                    for (var j = 0; j < keysToRemove.length; j++) {
+                      localStorage.removeItem(keysToRemove[j]);
+                    }
+                  } catch (e) {
+                    // Avoid console logging to prevent infinite loops during recovery
+                  }
+                }
+
+                // Intercept and suppress Supabase AuthApiError logs/warnings as early as possible
+                var originalConsoleError = console.error;
+                console.error = function() {
+                  var args = Array.prototype.slice.call(arguments);
+                  var isAuthError = false;
+                  for (var i = 0; i < args.length; i++) {
+                    var arg = args[i];
+                    if (!arg) continue;
+                    var str = typeof arg === 'string' ? arg : (arg.message || String(arg));
+                    var stack = arg.stack || '';
+                    var name = arg.name || '';
+                    var lower = (str + ' ' + stack + ' ' + name).toLowerCase();
+                    if (lower.indexOf('invalid refresh token') !== -1 || 
+                        lower.indexOf('refresh token not found') !== -1 ||
+                        lower.indexOf('authapierror') !== -1) {
+                      isAuthError = true;
+                      break;
+                    }
+                  }
+                  if (isAuthError) {
+                    clearSupabaseKeys();
+                    return;
+                  }
+                  originalConsoleError.apply(console, arguments);
+                };
+
+                var originalConsoleWarn = console.warn;
+                console.warn = function() {
+                  var args = Array.prototype.slice.call(arguments);
+                  var isAuthError = false;
+                  for (var i = 0; i < args.length; i++) {
+                    var arg = args[i];
+                    if (!arg) continue;
+                    var str = typeof arg === 'string' ? arg : (arg.message || String(arg));
+                    var lower = str.toLowerCase();
+                    if (lower.indexOf('invalid refresh token') !== -1 || 
+                        lower.indexOf('refresh token not found') !== -1 ||
+                        lower.indexOf('authapierror') !== -1) {
+                      isAuthError = true;
+                      break;
+                    }
+                  }
+                  if (isAuthError) {
+                    clearSupabaseKeys();
+                    return;
+                  }
+                  originalConsoleWarn.apply(console, arguments);
+                };
+
                 // 1. Error logging overlay setup
                 function showError(message, stack) {
                   try {
@@ -62,24 +128,7 @@ export default function RootLayout({
                     errorEl.innerHTML = '<strong>Browser Error:</strong> ' + message + '<pre style="margin: 5px 0 0 0; white-space: pre-wrap; font-size: 9px; opacity: 0.85; color: #fecaca;">' + (stack || 'No stack trace available') + '</pre>';
                     container.appendChild(errorEl);
                   } catch (e) {
-                    console.error('Failed to render error overlay:', e);
-                  }
-                }
-
-                function clearSupabaseKeys() {
-                  try {
-                    var keysToRemove = [];
-                    for (var i = 0; i < localStorage.length; i++) {
-                      var key = localStorage.key(i);
-                      if (key && (key.indexOf('sb-') === 0 || key.indexOf('auth-token') !== -1 || key.indexOf('supabase.auth.token') !== -1)) {
-                        keysToRemove.push(key);
-                      }
-                    }
-                    for (var j = 0; j < keysToRemove.length; j++) {
-                      localStorage.removeItem(keysToRemove[j]);
-                    }
-                  } catch (e) {
-                    console.error('Failed to clear keys:', e);
+                    // Suppressed
                   }
                 }
 
@@ -95,6 +144,10 @@ export default function RootLayout({
                       lowerStack.indexOf('invalid refresh token') !== -1 ||
                       lowerStack.indexOf('refresh token not found') !== -1) {
                     clearSupabaseKeys();
+                    try {
+                      event.stopImmediatePropagation();
+                      event.preventDefault();
+                    } catch (e) {}
                     return;
                   }
 
@@ -121,7 +174,10 @@ export default function RootLayout({
                       lowerStack.indexOf('refresh token not found') !== -1 ||
                       (reason && (reason.name === 'AuthApiError' || reason.status === 400))) {
                     clearSupabaseKeys();
-                    try { event.preventDefault(); } catch (e) {}
+                    try {
+                      event.stopImmediatePropagation();
+                      event.preventDefault();
+                    } catch (e) {}
                     return;
                   }
 

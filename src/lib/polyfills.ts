@@ -1,6 +1,57 @@
 'use client';
 
 if (typeof window !== 'undefined') {
+  const clearSupabaseKeys = () => {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('auth-token') || key.includes('supabase.auth.token'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+      // Ignore errors during emergency cleanup to prevent infinite recursion
+    }
+  };
+
+  // Intercept and suppress Supabase AuthApiError logs/warnings in client side
+  const originalConsoleError = console.error;
+  console.error = function (...args: any[]) {
+    const isAuthError = args.some(arg => {
+      if (!arg) return false;
+      const str = typeof arg === 'string' ? arg : (arg.message || String(arg));
+      const stack = arg.stack || '';
+      const name = arg.name || '';
+      const lower = (str + ' ' + stack + ' ' + name).toLowerCase();
+      return lower.includes('invalid refresh token') || 
+             lower.includes('refresh token not found') ||
+             lower.includes('authapierror');
+    });
+    if (isAuthError) {
+      clearSupabaseKeys();
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
+  const originalConsoleWarn = console.warn;
+  console.warn = function (...args: any[]) {
+    const isAuthError = args.some(arg => {
+      if (!arg) return false;
+      const str = typeof arg === 'string' ? arg : (arg.message || String(arg));
+      const lower = str.toLowerCase();
+      return lower.includes('invalid refresh token') || 
+             lower.includes('refresh token not found') ||
+             lower.includes('authapierror');
+    });
+    if (isAuthError) {
+      clearSupabaseKeys();
+      return;
+    }
+    originalConsoleWarn.apply(console, args);
+  };
   // 1. Polyfill crypto.randomUUID for non-secure contexts (HTTP / IP addresses)
   if (!window.crypto) {
     try {
@@ -142,20 +193,7 @@ if (typeof window !== 'undefined') {
     }
   };
 
-  const clearSupabaseKeys = () => {
-    try {
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('sb-') || key.includes('auth-token') || key.includes('supabase.auth.token'))) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    } catch (e) {
-      console.error('Failed to clear keys:', e);
-    }
-  };
+  // clearSupabaseKeys has been moved to the top of the scope
 
   window.addEventListener('error', (event) => {
     const msg = event.message || '';
@@ -169,6 +207,10 @@ if (typeof window !== 'undefined') {
         lowerStack.includes('invalid refresh token') ||
         lowerStack.includes('refresh token not found')) {
       clearSupabaseKeys();
+      try {
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      } catch (e) {}
       return;
     }
 
@@ -195,7 +237,10 @@ if (typeof window !== 'undefined') {
         lowerStack.includes('refresh token not found') ||
         (reason && (reason.name === 'AuthApiError' || reason.status === 400))) {
       clearSupabaseKeys();
-      try { event.preventDefault(); } catch (e) {}
+      try {
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      } catch (e) {}
       return;
     }
 

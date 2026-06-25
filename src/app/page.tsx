@@ -75,18 +75,7 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Persistent active tab on page refresh
   React.useEffect(() => {
-    const savedTab = localStorage.getItem('nunnn_stock_active_tab');
-    if (savedTab) {
-      setTimeout(() => {
-        setCurrentTab(savedTab);
-      }, 0);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    localStorage.setItem('nunnn_stock_active_tab', currentTab);
     // Scroll ke paling atas secara instan saat berpindah tab/halaman
     window.scrollTo(0, 0);
   }, [currentTab]);
@@ -158,8 +147,14 @@ export default function Dashboard() {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) {
-          console.warn('Supabase session recovery error:', error.message);
-          if (error.message.includes('Refresh Token') || error.message.includes('refresh_token') || error.status === 400 || error.status === 401) {
+          const isRefreshTokenError = error.message.includes('Refresh Token') || 
+                                     error.message.includes('refresh_token') || 
+                                     error.status === 400 || 
+                                     error.status === 401;
+          if (!isRefreshTokenError) {
+            console.warn('Supabase session recovery error:', error.message);
+          }
+          if (isRefreshTokenError) {
             clearSupabaseAuthKeys();
           }
         } else if (data?.session) {
